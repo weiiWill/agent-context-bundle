@@ -67,7 +67,7 @@ During AI-assisted software development, agents and developers generate massive 
 │   ├── INDEX.md                      # [Auto-Generated Board] Categorized catalog
 │   └── <type>-<slug>[-YYYYMMDD].md   # Standalone documents with Frontmatter
 ├── tasks/                            # Multi-session complex tasks
-│   ├── REGISTRY.md                   # Task admission log
+│   ├── REGISTRY.md                   # Strict task admission log (User command or Human-approved split)
 │   ├── STATUS.md                     # [Auto-Generated Board] Task status & liveness board
 │   └── <task-slug>/
 │       ├── README.md                 # Task controller (Frontmatter with status)
