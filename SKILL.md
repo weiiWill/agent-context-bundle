@@ -31,6 +31,7 @@ description: >-
 3. **命名规范**：`docs/` 与 `research/` 下遵循 `{type}-{descriptive-slug}[-{YYYYMMDD}].md`。快照类（`handoff`、`report`、`investigation`）带 `-YYYYMMDD` 日期后缀；长效架构与手册类（`architecture`、`playbook`、`note`）不带日期后缀。
 4. **任务内部资产**：`tasks/<task-slug>/` 下挂载的 `docs/*.md` 与 `plans/*.md` 纳管标准 Frontmatter 并由同步脚本收录；`inputs/`、`outputs/` 豁免 Frontmatter。
 5. **文档归档**：历史或废弃文档通过设置 Frontmatter `status: archived` 归档。
+6. **任务边界与旁路问题留痕**：Agent 执行主任务时若发现非阻塞的次要问题或潜在优化点，严禁节外生枝扩大改动范围，应统一以 `- [ ] <文件路径>: <问题描述>` 追加写入 `.context/TODO.md` 留痕。
 
 ---
 
@@ -116,7 +117,7 @@ invoke_subagent(
 
 4. **初始化模板与待办**：
    - 基于 `reference/context-readme-template.md` 创建 `.context/AGENTS.md`（包含完整 Agent SOP 与三级降级路径）；
-   - 创建 `.context/TODO.md`（极轻量待办模板）；
+   - 基于 `reference/todo-template.md` 创建 `.context/TODO.md`（极轻量待办草稿，用于天级记录与旁路问题留痕）；
    - 创建 `.context/tasks/REGISTRY.md`（任务准入表模板）。
 
 5. **配置工程隔离与自动化守护 (Multi-Platform Hook Matrix)**：
@@ -174,5 +175,6 @@ invoke_subagent(
 * [文档索引看板 INDEX.md 模板](reference/docs-index-template.md)
 * [任务主控 README 模板](reference/task-readme-template.md)
 * [长任务 progress.md 模板](reference/task-progress-template.md)
+* [轻量草稿 TODO.md 模板](reference/todo-template.md)
 * [Bundle 索引同步脚本](reference/sync-bundle-script.py)
 * [Frontmatter 自动续期脚本](reference/bump-updated-script.py)

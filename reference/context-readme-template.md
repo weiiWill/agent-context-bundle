@@ -48,6 +48,11 @@
 - **索引损坏一键重构**：若 `manifest.jsonl` 发生冲突或格式损坏，运行 `python3 .context/scripts/sync_bundle.py` 即可在毫秒内根据各文档 Frontmatter 从头重新生成全部索引与看板。
 - **缺失 Python 运行环境时**：只需手工维持 Frontmatter 语法合规，后续在宿主环境运行一次 `sync_bundle.py` 即可完成编译。
 
+### 2.4 任务边界控制与旁路待办留存 (Task Boundary & Out-of-Scope SOP)
+- **严禁节外生枝**：Agent 在执行当前主线任务时，若发现非阻塞性的旁路 Bug、次要坏味道或优化点，**严禁私自扩大本次改动范围**。
+- **写入 TODO.md 留痕**：将旁路发现以 `- [ ] <文件路径>: <问题描述>` 追加到 `.context/TODO.md`，并在本次回复末尾告知开发者。
+- **升级准入机制**：当某条待办事项需要跨多轮会话系统性解决时，经开发者确认，才从 `TODO.md` 划掉并正式准入至 `tasks/REGISTRY.md` 建立任务包。
+
 ---
 
 ## 3. 自动化守护矩阵 (Hooks & Enforcement)
