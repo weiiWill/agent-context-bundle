@@ -1,0 +1,11 @@
+{
+  "yaml.schemas": {
+    "./.context/schema/context-frontmatter.schema.json": [
+      ".context/docs/**/*.md",
+      ".context/research/**/*.md",
+      ".context/tasks/*/README.md",
+      ".context/tasks/*/docs/**/*.md",
+      ".context/tasks/*/plans/**/*.md"
+    ]
+  }
+}

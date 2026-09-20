@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AgentContextBundleFrontmatter",
+  "description": "Validation schema for YAML frontmatters within an Agent Context Bundle.",
+  "type": "object",
+  "required": ["type", "title", "status", "summary"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "Document categorization type.",
+      "enum": [
+        "architecture",
+        "playbook",
+        "handoff",
+        "investigation",
+        "reading-map",
+        "report",
+        "llm-io",
+        "note",
+        "task",
+        "draft"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable title for the document.",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "description": "Lifecycle status strictly in English enum.",
+      "enum": [
+        "draft",
+        "in_progress",
+        "paused",
+        "active",
+        "completed",
+        "resolved",
+        "archived"
+      ]
+    },
+    "resources": {
+      "type": "array",
+      "description": "Anchors to code assets or related documentation.",
+      "items": {
+        "type": "string",
+        "pattern": "^(code|doc|issue|pr|http|https)://.*"
+      },
+      "default": []
+    },
+    "tags": {
+      "type": "array",
+      "description": "Cross-cutting discovery tags.",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "created": {
+      "type": "string",
+      "description": "Creation date formatted as YYYY-MM-DD.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "updated": {
+      "type": "string",
+      "description": "Last updated date formatted as YYYY-MM-DD.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "summary": {
+      "type": "string",
+      "description": "One-sentence executive summary (<= 100 characters).",
+      "maxLength": 200
+    },
+    "pinned": {
+      "type": "boolean",
+      "description": "If true, exempt from automatic cleanup reviews.",
+      "default": false
+    }
+  },
+  "additionalProperties": true
+}

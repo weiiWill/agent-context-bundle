@@ -106,25 +106,30 @@ invoke_subagent(
 2. **建立标准目录骨架**：
    - 创建 `.context/docs/`、`.context/research/`、`.context/tasks/`、`.context/scripts/`。
 
-3. **植入自动化引擎**：
+3. **植入自动化引擎与校验规范**：
    - 将 `reference/sync-bundle-script.py` 写入 `.context/scripts/sync_bundle.py`；
    - 将 `reference/bump-updated-script.py` 写入 `.context/scripts/bump_updated.py`；
-   - 赋予执行权限：`chmod +x .context/scripts/*.py`。
+   - 将 `reference/hooks/install-git-hook.sh` 写入 `.context/scripts/install_git_hook.sh`；
+   - 将 `reference/schema/context-frontmatter.schema.json` 写入 `.context/schema/context-frontmatter.schema.json`；
+   - 赋予执行权限：`chmod +x .context/scripts/*.py .context/scripts/*.sh`。
 
 4. **初始化模板与待办**：
-   - 基于 `reference/context-readme-template.md` 创建 `.context/AGENTS.md`；
+   - 基于 `reference/context-readme-template.md` 创建 `.context/AGENTS.md`（包含完整 Agent SOP 与三级降级路径）；
    - 创建 `.context/TODO.md`（极轻量待办模板）；
    - 创建 `.context/tasks/REGISTRY.md`（任务准入表模板）。
 
-5. **配置工程与仓库隔离**：
+5. **配置工程隔离与自动化守护 (Multi-Platform Hook Matrix)**：
    - 在项目根目录 `.gitignore` 中追加一行 `.context/`，确保过程资产不污染 Git；
    - 在仓库根目录 `AGENTS.md` 中追加文档维护章节与 `.context/AGENTS.md` 路由指引；
-   - （可选）若项目使用 Claude Code / 编辑器 Hook，参考 `reference/optional-auto-sync-hook.md` 在 `.claude/settings.local.json` 配置 `PostToolUse` 自动续期与同步。
+   - **自动化 Hook 矩阵感知与安装**：
+     - 若检测到 Claude Code 环境（或存在 `.claude/` 目录），参考 `reference/hooks/claude-settings.json` 在 `.claude/settings.local.json` 中配置 `PostToolUse` 实时同步；
+     - 若检测到 Google Antigravity 环境（或存在 `.agents/` 目录），参考 `reference/hooks/antigravity-hooks.json` 在 `.agents/hooks.json` 中配置原生 Hook；
+     - 执行 `bash .context/scripts/install_git_hook.sh` 安装本地 Git 提交兜底拦截器。
 
 6. **初次索引编译与自检**：
    - 运行 `python3 .context/scripts/sync_bundle.py`；
    - 确认生成初始 `manifest.jsonl`、`docs/INDEX.md`、`tasks/STATUS.md`、`CLEANUP.md`；
-   - 向主 Agent 返回初始化成功摘要与目录清单。
+   - 向主 Agent 返回初始化成功摘要、目录清单及已启用的 Hook 状态。
 
 ---
 
@@ -134,7 +139,7 @@ invoke_subagent(
 
 1. **Frontmatter 规范性校验**：
    - 扫描 `.context/` 下除 `TODO.md`、`progress.md` 及自动生成文件外的所有 Markdown；
-   - 检查必须包含合法 Frontmatter（`type`, `status`, `updated`, `summary`）；
+   - 依据 `context-frontmatter.schema.json` 检查必须包含合法 Frontmatter（`type`, `status`, `updated`, `summary`）；
    - 检查 `status` 是否属于标准英文枚举值，发现非标格式直接修复。
 
 2. **链接图谱与断链检测**：
@@ -158,11 +163,15 @@ invoke_subagent(
 
 ## 参考与模板
 
-* [Context 顶层导航模板](reference/context-readme-template.md)
+* [Context 顶层导航与 SOP 模板](reference/context-readme-template.md)
 * [标准 Frontmatter 示例](reference/docs-frontmatter-example.md)
+* [Frontmatter JSON Schema 规范](reference/schema/context-frontmatter.schema.json)
+* [VSCode YAML 补全与校验配置](reference/schema/vscode-settings-snippet.json)
+* [Claude Code Hook 配置模板](reference/hooks/claude-settings.json)
+* [Antigravity Hook 配置模板](reference/hooks/antigravity-hooks.json)
+* [Git Pre-commit 兜底 Hook 安装器](reference/hooks/install-git-hook.sh)
 * [文档展示层 INDEX.md 模板](reference/docs-index-template.md)
 * [任务主控 README 模板](reference/task-readme-template.md)
 * [长任务 progress.md 模板](reference/task-progress-template.md)
 * [Bundle 索引同步脚本](reference/sync-bundle-script.py)
 * [Frontmatter 自动续期脚本](reference/bump-updated-script.py)
-* [自动续期 Hook 配置说明](reference/optional-auto-sync-hook.md)

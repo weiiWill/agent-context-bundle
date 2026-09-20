@@ -154,10 +154,12 @@ ln -s /path/to/agent-context-bundle ~/.claude/skills/agent-context-bundle
 
 ---
 
-## ⚡ Optional: Automatic PostToolUse Hooks
+## ⚡ Multi-Platform Automation & Hook Matrix / 多平台自动化与守护矩阵
 
-If using Claude Code, you can configure `.claude/settings.local.json` to automatically bump `updated:` dates and re-render indexes whenever `.context/**` files are edited:
+To ensure zero cognitive burden and eliminate manual index updates, `agent-context-bundle` supports seamless code-level lifecycle hooks across major Agent environments:
 
+### 1. Claude Code (`.claude/settings.local.json`)
+Auto-bumps `updated:` dates and re-renders the manifest whenever files in `.context/**` are written or edited:
 ```json
 {
   "hooks": {
@@ -167,8 +169,8 @@ If using Claude Code, you can configure `.claude/settings.local.json` to automat
         "hooks": [{
           "type": "command",
           "if": "Write(.context/**)",
-          "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 \"<PROJECT_ROOT>/.context/scripts/bump_updated.py\" \"$f\"; python3 \"<PROJECT_ROOT>/.context/scripts/sync_bundle.py\"; } 2>/dev/null || true",
-          "statusMessage": "Syncing .context/ bundle"
+          "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; } 2>/dev/null || true",
+          "statusMessage": "🔄 Syncing .context/ bundle"
         }]
       },
       {
@@ -176,10 +178,45 @@ If using Claude Code, you can configure `.claude/settings.local.json` to automat
         "hooks": [{
           "type": "command",
           "if": "Edit(.context/**)",
-          "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 \"<PROJECT_ROOT>/.context/scripts/bump_updated.py\" \"$f\"; python3 \"<PROJECT_ROOT>/.context/scripts/sync_bundle.py\"; } 2>/dev/null || true",
-          "statusMessage": "Syncing .context/ bundle"
+          "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; } 2>/dev/null || true",
+          "statusMessage": "🔄 Syncing .context/ bundle"
         }]
       }
+    ]
+  }
+}
+```
+
+### 2. Google Antigravity (`.agents/hooks.json`)
+Native AGY lifecycle integration with 5s timeout and fail-open resilience:
+```json
+{
+  "context-bundle-sync": {
+    "PostToolUse": [
+      {
+        "matcher": "write_to_file",
+        "hooks": [{ "type": "command", "command": "python3 .context/scripts/sync_bundle.py 2>/dev/null || true" }]
+      },
+      {
+        "matcher": "replace_file_content",
+        "hooks": [{ "type": "command", "command": "python3 .context/scripts/sync_bundle.py 2>/dev/null || true" }]
+      }
+    ]
+  }
+}
+```
+
+### 3. Universal Git Pre-commit Hook
+Run `.context/scripts/install_git_hook.sh` to install a local pre-commit guard that automatically syncs and stages updated indexes whenever `.context/` files are committed.
+
+### 4. JSON Schema & VSCode Validation
+A formal JSON Schema is provided at `reference/schema/context-frontmatter.schema.json`. Bind it in `.vscode/settings.json` for IDE autocompletion and frontmatter linting:
+```json
+{
+  "yaml.schemas": {
+    "./.context/schema/context-frontmatter.schema.json": [
+      ".context/docs/**/*.md",
+      ".context/tasks/*/README.md"
     ]
   }
 }
