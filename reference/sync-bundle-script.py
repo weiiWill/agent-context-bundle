@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Agent Context Bundle 双层索引同步引擎 (Agent Context Bundle Sync Engine)
 
-依据 Context Bundle 双层架构规范:
-- 机器真相层: Frontmatter + manifest.jsonl (含标准 Concept ID、resources 资产引用、links 图谱关联)
-- 人类展示层: docs/INDEX.md、tasks/STATUS.md、CLEANUP.md (由脚本自动渲染，请勿手动编辑)
+依据 Context Bundle 权威元数据与物化视图规范:
+- 权威元数据源 (SSOT): 各 Markdown 文件的 YAML Frontmatter
+- 物化检索索引: manifest.jsonl (含标准 Concept ID、resources 资产引用、links 图谱关联)
+- 聚合只读看板: docs/INDEX.md、tasks/STATUS.md、CLEANUP.md (由脚本自动渲染，请勿手动编辑)
+- 任务活跃度与时效治理: >14 天未更新停滞报警，>30 天完成任务超期归档审核
 - 状态枚举: 全面采用严格英文 (draft, in_progress, paused, active, completed, resolved, archived)
 
 用法:

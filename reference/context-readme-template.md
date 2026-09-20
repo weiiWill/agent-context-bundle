@@ -10,7 +10,7 @@
 - `research/` — 跨任务共享的研究与专项评测数据。
 - `tasks/<slug>/` — 准入的任务单元。参见 [tasks/STATUS.md](tasks/STATUS.md)（状态看板）与 [tasks/REGISTRY.md](tasks/REGISTRY.md)（任务准入表）。
 - `scripts/` — 核心自动化引擎（`sync_bundle.py`、`bump_updated.py`）。
-- `manifest.jsonl` — [机器真相层] 全局单行 JSON 索引，供 Agent 秒级结构化检索。
+- `manifest.jsonl` — [物化检索索引] 全局单行 JSON 索引，供 Agent 秒级结构化检索。
 - `CLEANUP.md` — [生命周期] 自动生成的待清理/待归档候选清单。
 - `TODO.md` — 极轻量待办草稿（纯 markdown checkbox，无需 frontmatter，不进索引）。
 
@@ -29,23 +29,23 @@
   # 查找包含特定标签的资产
   grep '"tags":.*data-pipeline' .context/manifest.jsonl
   ```
-- **L2 降级（人类看板兜底）**：
-  若当前环境缺失 `jq` 或 Python 运行受阻，降级阅读编译生成的人类看板：
+- **L2 降级（物化只读看板兜底）**：
+  若当前环境缺失 `jq` 或 Python 运行受阻，降级阅读编译生成的聚合看板视图：
   - 查阅文档分类：阅读 `.context/docs/INDEX.md`；
-  - 查阅任务进展与停滞预警：阅读 `.context/tasks/STATUS.md`。
+  - 查阅任务进展与活跃度：阅读 `.context/tasks/STATUS.md`。
 - **L3 极限兜底（文件系统直查）**：
   若看板尚未生成或损坏，直接使用目录查找：
   - 架构与排查：`ls .context/docs/`；
   - 任务主控：`ls .context/tasks/*/README.md`。
 
 ### 2.2 安全写入与更新规范 (Safe Modification SOP)
-- **Frontmatter 强制要求**：新建或编辑文档时，头部必须包含合法的 YAML Frontmatter（`type`、`title`、`status`、`summary` 为必填项）。
+- **Frontmatter 强制要求**：新建或编辑文档时，头部必须包含合法的 YAML Frontmatter（`type`、`title`、`status`、`summary` 为必填项，作为唯一权威元数据源）。
 - **严格英文状态枚举**：统一严格使用：`active` | `draft` | `in_progress` | `paused` | `completed` | `resolved` | `archived`。
-- **只读派生层禁止手改**：`docs/INDEX.md`、`tasks/STATUS.md`、`CLEANUP.md` 与 `manifest.jsonl` 由同步脚本自动编译，**严禁手动编辑**。
+- **只读物化视图禁止手改**：`docs/INDEX.md`、`tasks/STATUS.md`、`CLEANUP.md` 与 `manifest.jsonl` 由同步脚本自动编译，**严禁手动编辑**。
 - **修改时效维护**：编辑文档后，将 `updated:` 更新为当天（`YYYY-MM-DD`）；若配置了 Hook 守护，该动作由 Hook 自动且幂等完成。
 
 ### 2.3 异常自愈与降级机制 (Graceful Fallback & Self-Healing)
-- **索引损坏一键重构**：若 `manifest.jsonl` 发生冲突或格式损坏，运行 `python3 .context/scripts/sync_bundle.py` 即可在毫秒内根据真相层从头重建全部索引与看板。
+- **索引损坏一键重构**：若 `manifest.jsonl` 发生冲突或格式损坏，运行 `python3 .context/scripts/sync_bundle.py` 即可在毫秒内根据权威元数据源（Frontmatter）从头重建全部物化索引与看板。
 - **缺失 Python 运行环境时**：只需手工维持 Frontmatter 语法合规，后续在宿主环境运行一次 `sync_bundle.py` 即可完成编译。
 
 ---

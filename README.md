@@ -28,7 +28,7 @@ During AI-assisted software development, agents and developers generate massive 
 ```
                       +------------------------------------------+
                       |          YAML Frontmatter                |
-                      |   (Machine Truth Layer / 机器真相层)      |
+                      | (Authoritative Metadata Source / 权威元数据源) |
                       +------------------------------------------+
                                            |
                                   sync_bundle.py (Engine)
@@ -38,8 +38,8 @@ During AI-assisted software development, agents and developers generate massive 
             v                                                             v
 +------------------------+                                   +------------------------+
 |    manifest.jsonl      |                                   |  docs/INDEX.md         |
-|  (Agent Fast Triage)   |                                   |  tasks/STATUS.md       |
-|  grep / jq in <5ms     |                                   |  (Human-Readable Board)|
+| (Materialized Index)   |                                   |  tasks/STATUS.md       |
+|  grep / jq in <5ms     |                                   | (Materialized Views)   |
 +------------------------+                                   +------------------------+
 ```
 
@@ -48,8 +48,8 @@ During AI-assisted software development, agents and developers generate massive 
 3. **Graph via Markdown Links（图谱化关联）**:
    - **Horizontal (Doc $\leftrightarrow$ Doc)**: Standard relative Markdown links `[title](../path/to/doc.md)`.
    - **Vertical (Doc $\rightarrow$ Code)**: Explicit `resources` URI anchoring (e.g., `code://src/service/processor.py#L45`).
-4. **Dual-Layer Indexing（双层架构）**: Machine truth is in frontmatters and aggregated into `manifest.jsonl`. Human-readable boards (`INDEX.md`, `STATUS.md`, `CLEANUP.md`) are automatically rendered by scripts.
-5. **Lifecycle Governance（时效治理）**:
+4. **Authoritative Source & Materialized Views（权威元数据源与物化视图）**: The Authoritative Metadata Source (SSOT) lives in each file's YAML Frontmatter. The Materialized Query Index (`manifest.jsonl`) provides high-speed Agent triage, while Materialized Read Views (`INDEX.md`, `STATUS.md`, `CLEANUP.md`) provide instant human and high-level project visibility.
+5. **Task Liveness & Freshness Governance（任务活跃度与时效治理）**:
    - ⚠️ **Stagnant Tasks**: Flagged if active/in-progress with no updates for >14 days.
    - 🗑️ **Cleanup Candidates**: Listed if completed/archived with no touches for >30 days (unless `pinned: true`).
 
@@ -60,15 +60,15 @@ During AI-assisted software development, agents and developers generate massive 
 ```text
 .context/                             # Git-ignored by default
 ├── AGENTS.md                         # Local workspace guidance for agents
-├── manifest.jsonl                    # [Machine Index] Single-line JSON per concept
+├── manifest.jsonl                    # [Materialized Index] Single-line JSON per concept
 ├── CLEANUP.md                        # [Lifecycle] Cleanup candidates (>30d inactive)
 ├── TODO.md                           # Lightweight scratchpad (pure markdown checkboxes)
 ├── docs/                             # Evergreen knowledge
-│   ├── INDEX.md                      # [Presentation Layer] Auto-rendered catalog
+│   ├── INDEX.md                      # [Materialized View] Auto-rendered catalog
 │   └── <type>-<slug>[-YYYYMMDD].md   # Standalone documents with Frontmatter
 ├── tasks/                            # Multi-session complex tasks
 │   ├── REGISTRY.md                   # Task admission log
-│   ├── STATUS.md                     # [Presentation Layer] Task status board
+│   ├── STATUS.md                     # [Materialized View] Task status & liveness board
 │   └── <task-slug>/
 │       ├── README.md                 # Task controller (Frontmatter with status)
 │       ├── progress.md               # Append-only chronological execution log
