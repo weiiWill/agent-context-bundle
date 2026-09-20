@@ -3,7 +3,7 @@ name: agent-context-bundle
 description: >-
   在项目里建立并维护 `.context/` 本地知识包(Knowledge Bundle)与 Agent 工作区。
   用来存放开发过程中的分析笔记、排查记录、跨会话交接(handoff)、临时脚本、评测数据及沉淀的架构决策与执行手册(playbook)。
-  采用"权威元数据源(Frontmatter)驱动、自动编译物化检索索引(manifest.jsonl)与聚合只读看板(INDEX/STATUS)、Markdown 相对链接作为语义网络"的标准设计，
+  采用"以 Frontmatter 为唯一事实来源、自动生成结构化索引(manifest.jsonl)与汇总看板(INDEX/STATUS)、Markdown 相对链接构建关联网络"的设计，
   配套任务活跃度与时效治理及知识流转漏斗(草稿->任务执行->基准沉淀->归档清理)。
   提供隔离 Sub-agent 工作流编排，支持在新项目中执行 init 初始化以及在已有项目中执行 maintain 巡检维护。
 ---
@@ -18,8 +18,8 @@ description: >-
 1. **零外部依赖**：纯 Markdown + YAML Frontmatter，无需额外数据库或专属 SDK。
 2. **路径即唯一身份（Concept as ID）**：每个文件是一个 Concept，去扩展名的相对路径即为唯一 ID（如 `tasks/api-migration`）。
 3. **图谱化关联（Knowledge Graph）**：文档之间通过标准 Markdown 相对链接引用；文档与代码资产通过 Frontmatter 的 `resources`（如 `code://src/service.go#L30`）锚定。
-4. **权威元数据源与物化视图（Authoritative Source & Materialized Views）**：Frontmatter 作为唯一权威元数据源（SSOT），机器检索靠物化检索索引 `manifest.jsonl`，全局概览靠脚本自动编译的物化只读视图 `INDEX.md` 与 `STATUS.md`。
-5. **知识流转漏斗**：支持从临时 Scratchpad（`TODO.md`）到深入 Task/Investigation，再提炼沉淀为常青 Playbook/Architecture 的正向知识流转。
+4. **唯一事实来源与自动生成看板（Source of Truth & Generated Views）**：每个文档头部的 YAML Frontmatter 是唯一真实数据源。脚本自动提取并生成供 Agent 5ms 检索的结构化索引（`manifest.jsonl`）与供开发者查阅的汇总看板（`INDEX.md`、`STATUS.md`）。
+5. **知识流转漏斗**：支持从临时 Scratchpad（`TODO.md`）到深入 Task/Investigation，再提炼沉淀为长效 Playbook/Architecture 的正向知识流转。
 6. **任务活跃度与时效治理**：针对修改自动触碰时间戳，针对 >14 天未更新任务触发停滞预警，针对 >30 天完成任务自动归入清理候选池。
 
 ---
@@ -28,7 +28,7 @@ description: >-
 
 1. **状态枚举**：统一使用标准英文枚举：`active` | `draft` | `in_progress` | `paused` | `completed` | `resolved` | `archived`。
 2. **资产写入范围**：所有本地开发上下文、任务方案与评测脚本统一写入 `.context/`；仓库根目录 `docs/` 仅用于公共工程文档。
-3. **命名规范**：`docs/` 与 `research/` 下遵循 `{type}-{descriptive-slug}[-{YYYYMMDD}].md`。快照类（`handoff`、`report`、`investigation`）带 `-YYYYMMDD` 日期后缀；常青类（`architecture`、`playbook`、`note`）不带日期后缀。
+3. **命名规范**：`docs/` 与 `research/` 下遵循 `{type}-{descriptive-slug}[-{YYYYMMDD}].md`。快照类（`handoff`、`report`、`investigation`）带 `-YYYYMMDD` 日期后缀；长效架构与手册类（`architecture`、`playbook`、`note`）不带日期后缀。
 4. **任务内部资产**：`tasks/<task-slug>/` 下挂载的 `docs/*.md` 与 `plans/*.md` 纳管标准 Frontmatter 并由同步脚本收录；`inputs/`、`outputs/` 豁免 Frontmatter。
 5. **文档归档**：历史或废弃文档通过设置 Frontmatter `status: archived` 归档。
 
@@ -39,15 +39,15 @@ description: >-
 ```
 .context/
 ├── AGENTS.md                         # 本地工作区引导说明
-├── manifest.jsonl                    # [物化检索索引] 一行一个 Concept，供 Agent 用 jq/grep 直接解析
+├── manifest.jsonl                    # [结构化索引] 一行一个 Concept，供 Agent 用 jq/grep 直接解析
 ├── CLEANUP.md                        # [生命周期] 待归档/待清理候选清单，由脚本自动生成
 ├── TODO.md                           # 极轻量待办草稿（纯 markdown checkbox，无需 frontmatter）
-├── docs/                             # 常青知识 (Architecture, Playbooks, ADRs, 导航说明)
-│   ├── INDEX.md                      # [物化视图] 文档分类索引，由脚本自动根据 frontmatter 渲染
+├── docs/                             # 长期沉淀的核心规范 (Architecture, Playbooks, ADRs, 导航说明)
+│   ├── INDEX.md                      # [自动生成看板] 文档分类索引，由脚本自动根据 frontmatter 渲染
 │   └── <type>-<slug>[-YYYYMMDD].md   # 每个文档顶部带标准 Frontmatter
 ├── tasks/                            # 复杂任务生命周期
 │   ├── REGISTRY.md                   # 顶层任务准入名单
-│   ├── STATUS.md                     # [物化视图] 任务状态与活跃度监控看板，由脚本自动生成
+│   ├── STATUS.md                     # [自动生成看板] 任务状态与活跃度监控看板，由脚本自动生成
 │   └── <task-slug>/
 │       ├── README.md                 # 任务主控 (带标准 Frontmatter)
 │       ├── progress.md               # 线性推进日志 (超长自动分卷归档)
@@ -60,7 +60,7 @@ description: >-
 
 ---
 
-## Frontmatter 规范（权威元数据源 SSOT）
+## Frontmatter 规范（唯一事实来源 SSOT）
 
 `docs/`、`research/`、`tasks/*/docs/`、`tasks/*/plans/` 以及 `tasks/*/README.md` 顶部包含标准 YAML Frontmatter：
 
@@ -171,7 +171,7 @@ invoke_subagent(
 * [Claude Code Hook 配置模板](reference/hooks/claude-settings.json)
 * [Antigravity Hook 配置模板](reference/hooks/antigravity-hooks.json)
 * [Git Pre-commit 兜底 Hook 安装器](reference/hooks/install-git-hook.sh)
-* [文档物化看板 INDEX.md 模板](reference/docs-index-template.md)
+* [文档索引看板 INDEX.md 模板](reference/docs-index-template.md)
 * [任务主控 README 模板](reference/task-readme-template.md)
 * [长任务 progress.md 模板](reference/task-progress-template.md)
 * [Bundle 索引同步脚本](reference/sync-bundle-script.py)

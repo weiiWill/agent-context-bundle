@@ -3,8 +3,8 @@
 这一步是可选的增强功能。如果不配置 Hook，直接在修改文档后手动运行 `python3 .context/scripts/sync_bundle.py` 同样完全可行。若希望在保存文件时自动续期 `updated:` 并刷新全局索引看板，可以在项目的 `.claude/settings.local.json` 中配置 `PostToolUse` Hook。
 
 Hook 协同工作机制：
-1. **权威元数据源时效自维护**：修改目标文件时，`bump_updated.py` 自动将 Frontmatter 的 `updated:` 字段更新为当天日期（幂等操作，已经是当天则不触碰文件）；
-2. **物化索引与看板自动编译**：随后自动调用 `sync_bundle.py` 重新渲染 `docs/INDEX.md`、`tasks/STATUS.md`、`CLEANUP.md` 与 `manifest.jsonl`。
+1. **自动更新修改日期**：修改目标文件时，`bump_updated.py` 自动将 Frontmatter 的 `updated:` 字段更新为当天日期（幂等操作，已经是当天则不触碰文件）；
+2. **自动重新编译索引与看板**：随后自动调用 `sync_bundle.py` 重新渲染 `docs/INDEX.md`、`tasks/STATUS.md`、`CLEANUP.md` 与 `manifest.jsonl`。
 
 ## 配置片段 (`.claude/settings.local.json`)
 

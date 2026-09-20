@@ -16,10 +16,10 @@ During AI-assisted software development, agents and developers generate massive 
 
 **The Dilemma**:
 - Storing them in the main Git repository pollutes commit history and main branches.
-- Storing them untracked without structure leads to lost context and "context drift".
+- Storing them untracked without structure leads to lost context and information gaps between sessions.
 
 **The Solution**:
-`Agent Context Bundle` establishes a structured, Git-isolated `.context/` workspace that turns local project knowledge into a machine-parseable, self-governing **Knowledge Graph**.
+`Agent Context Bundle` establishes a structured, Git-isolated `.context/` workspace that turns local project knowledge into an easily retrievable, self-governing **Knowledge Graph**.
 
 ---
 
@@ -28,7 +28,7 @@ During AI-assisted software development, agents and developers generate massive 
 ```
                       +------------------------------------------+
                       |          YAML Frontmatter                |
-                      | (Authoritative Metadata Source / 权威元数据源) |
+                      |   (Single Source of Truth / 唯一事实源)   |
                       +------------------------------------------+
                                            |
                                   sync_bundle.py (Engine)
@@ -38,17 +38,17 @@ During AI-assisted software development, agents and developers generate massive 
             v                                                             v
 +------------------------+                                   +------------------------+
 |    manifest.jsonl      |                                   |  docs/INDEX.md         |
-| (Materialized Index)   |                                   |  tasks/STATUS.md       |
-|  grep / jq in <5ms     |                                   | (Materialized Views)   |
+|   (Fast Query Index)   |                                   |  tasks/STATUS.md       |
+|  grep / jq in <5ms     |                                   | (Auto-Generated Boards)|
 +------------------------+                                   +------------------------+
 ```
 
-1. **Zero Lock-in（零外部依赖）**: Pure Markdown + YAML Frontmatter. No database, server, or custom SDK required.
+1. **Zero External Dependencies（零外部依赖）**: Pure Markdown + YAML Frontmatter. No database, server, or proprietary SDK required.
 2. **Concept as ID（路径即唯一身份）**: Every document is a Concept; its relative path without extension is its unique ID (e.g., `docs/architecture-pipeline`).
-3. **Graph via Markdown Links（图谱化关联）**:
+3. **Graph via Markdown Links（双向关联网络）**:
    - **Horizontal (Doc $\leftrightarrow$ Doc)**: Standard relative Markdown links `[title](../path/to/doc.md)`.
    - **Vertical (Doc $\rightarrow$ Code)**: Explicit `resources` URI anchoring (e.g., `code://src/service/processor.py#L45`).
-4. **Authoritative Source & Materialized Views（权威元数据源与物化视图）**: The Authoritative Metadata Source (SSOT) lives in each file's YAML Frontmatter. The Materialized Query Index (`manifest.jsonl`) provides high-speed Agent triage, while Materialized Read Views (`INDEX.md`, `STATUS.md`, `CLEANUP.md`) provide instant human and high-level project visibility.
+4. **Single Source of Truth & Generated Views（唯一事实源与自动生成看板）**: Each file's YAML Frontmatter serves as the Single Source of Truth (SSOT). The aggregated index (`manifest.jsonl`) provides high-speed Agent triage, while auto-generated Markdown boards (`INDEX.md`, `STATUS.md`, `CLEANUP.md`) give developers instant, clean project overviews.
 5. **Task Liveness & Freshness Governance（任务活跃度与时效治理）**:
    - ⚠️ **Stagnant Tasks**: Flagged if active/in-progress with no updates for >14 days.
    - 🗑️ **Cleanup Candidates**: Listed if completed/archived with no touches for >30 days (unless `pinned: true`).
@@ -60,15 +60,15 @@ During AI-assisted software development, agents and developers generate massive 
 ```text
 .context/                             # Git-ignored by default
 ├── AGENTS.md                         # Local workspace guidance for agents
-├── manifest.jsonl                    # [Materialized Index] Single-line JSON per concept
+├── manifest.jsonl                    # [Fast Index] Single-line JSON per concept for agent lookup
 ├── CLEANUP.md                        # [Lifecycle] Cleanup candidates (>30d inactive)
 ├── TODO.md                           # Lightweight scratchpad (pure markdown checkboxes)
-├── docs/                             # Evergreen knowledge
-│   ├── INDEX.md                      # [Materialized View] Auto-rendered catalog
+├── docs/                             # Core specifications & architecture
+│   ├── INDEX.md                      # [Auto-Generated Board] Categorized catalog
 │   └── <type>-<slug>[-YYYYMMDD].md   # Standalone documents with Frontmatter
 ├── tasks/                            # Multi-session complex tasks
 │   ├── REGISTRY.md                   # Task admission log
-│   ├── STATUS.md                     # [Materialized View] Task status & liveness board
+│   ├── STATUS.md                     # [Auto-Generated Board] Task status & liveness board
 │   └── <task-slug>/
 │       ├── README.md                 # Task controller (Frontmatter with status)
 │       ├── progress.md               # Append-only chronological execution log
