@@ -50,7 +50,10 @@
 
 ### 2.4 任务边界控制与旁路待办留存 (Task Boundary & Out-of-Scope SOP)
 - **严禁节外生枝**：Agent 在执行当前主线任务时，若发现非阻塞性的旁路 Bug、次要坏味道或优化点，**严禁私自扩大本次改动范围**。
-- **写入 TODO.md 留痕**：将旁路发现以 `- [ ] <文件路径>: <问题描述>` 追加到 `.context/TODO.md`，并在本次回复末尾告知开发者。
+- **带归属标签写入 TODO.md**：将旁路发现统一追加写入 `.context/TODO.md`，每条记录必须携带明确的归属作用域前缀：
+  - `[task:<task-slug>]`：归属于正在执行的特定任务（如 `- [ ] [task:auth-refactor] src/auth/jwt.go#L42: 修复边界异常`）；
+  - `[global]`：全局工程级待办，与特定任务无关（如 `- [ ] [global] 升级 CI Node 版本`）。
+- **任务结项闭环核对**：当准备将某个任务标记为 `completed` 结项时，Agent 应主动检索 `grep 'task:<task-slug>' .context/TODO.md`，向开发者汇报是否存在该任务派生的未完 TODO，由开发者决定是就地解决、转为 `[global]` 还是清理移除。
 
 ### 2.5 任务立项与拆分严格准入机制 (Strict Task Admission & Split SOP)
 - **Task 是重量级实体**：`tasks/` 下的每个任务都是跨多轮会话、需要系统性推进的大型专项，**严禁任务随意膨胀**。

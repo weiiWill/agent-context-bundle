@@ -31,7 +31,7 @@ description: >-
 3. **命名规范**：`docs/` 与 `research/` 下遵循 `{type}-{descriptive-slug}[-{YYYYMMDD}].md`。快照类（`handoff`、`report`、`investigation`）带 `-YYYYMMDD` 日期后缀；长效架构与手册类（`architecture`、`playbook`、`note`）不带日期后缀。
 4. **任务内部资产**：`tasks/<task-slug>/` 下挂载的 `docs/*.md` 与 `plans/*.md` 纳管标准 Frontmatter 并由同步脚本收录；`inputs/`、`outputs/` 豁免 Frontmatter。
 5. **文档归档**：历史或废弃文档通过设置 Frontmatter `status: archived` 归档。
-6. **任务边界与旁路问题留痕**：Agent 执行主任务时若发现非阻塞的次要问题或潜在优化点，严禁节外生枝扩大改动范围，应统一以 `- [ ] <文件路径>: <问题描述>` 追加写入 `.context/TODO.md` 留痕。
+6. **任务边界与旁路问题留痕**：Agent 执行主任务时若发现非阻塞的次要问题或潜在优化点，严禁节外生枝扩大改动范围，应统一以 `- [ ] [<scope>] <代码位置>: <问题描述>` 追加写入 `.context/TODO.md` 留痕（`<scope>` 为 `global` 或 `task:<slug>`，任务结项时主动检索闭环）。
 7. **Task 严格准入双通道**：Task 属于跨多轮会话的大型专项，严禁随意膨胀。新建 Task 仅允许两种方式：用户显式要求立项，或 Agent 提议拆分并**获得人工明确确认**。严禁 Agent 私自创建 Task 目录。
 
 ---
