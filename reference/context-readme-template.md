@@ -128,5 +128,5 @@
 
 - **草稿层**：`TODO.md` 用于天级零碎记录。
 - **任务推进**：复杂事项在 `tasks/REGISTRY.md` 登记后，创建 `tasks/<slug>/README.md` 与 `progress.md` 线性推进。
-- **常青沉淀**：任务完成后，有价值的架构与方法论提炼移入 `docs/`（如 `docs/architecture-*.md` 或 `docs/playbook-*.md`）。
+- **长效沉淀**：任务完成后，有价值的架构与方法论提炼移入 `docs/`（如 `docs/architecture-*.md` 或 `docs/playbook-*.md`）。
 - **生命周期归档**：历史任务与快照标记为 `status: archived`，逾期 30 天自动汇总至 `CLEANUP.md`。
