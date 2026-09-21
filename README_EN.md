@@ -54,30 +54,28 @@ A standardized `.context/` workspace governed by an ultra-lightweight compile-ti
 
 ## 📐 Core Architecture
 
-```mermaid
-flowchart TD
-    subgraph SSOT["Single Source of Truth (SSOT)"]
-        FM["<b>Markdown Frontmatter (YAML)</b><br/>• Structured fields: id, type, status, tags, summary<br/>• Source code anchoring: resources: code://...#L10"]
-    end
-
-    ENGINE["⚙️ <b>sync_bundle.py</b><br/>(Compile engine &lt;15ms)"]
-
-    subgraph OUTPUT_AI["For AI Agents (Fast Triage)"]
-        MANIFEST["<b>manifest.jsonl</b> (Single-Line Index)<br/>• One JSON record per document<br/>• grep / jq targeted query &lt;5ms<br/>• Single triage &lt;300 Tokens (99% savings)"]
-    end
-
-    subgraph OUTPUT_HUMAN["For Humans (Overview Boards)"]
-        INDEX["<b>docs/INDEX.md</b><br/>Categorized catalog"]
-        STATUS["<b>tasks/STATUS.md</b><br/>Task status & stagnancy alerts"]
-        CLEANUP["<b>CLEANUP.md</b><br/>Cleanup review queue"]
-    end
-
-    FM --> ENGINE
-    ENGINE --> MANIFEST
-    ENGINE --> INDEX
-    ENGINE --> STATUS
-    ENGINE --> CLEANUP
+```text
+Markdown Files (YAML Frontmatter) ─── [Single Source of Truth]
+  ├── Structured metadata: id, type, status, tags, summary
+  └── Vertical code anchors: resources: code://src/auth.go#L42
+       │
+       ▼
+sync_bundle.py Compilation Engine (<15ms)
+       │
+       ├──► manifest.jsonl ──────────► For AI: Single-line JSONL streaming (<5ms, -99% tokens)
+       │
+       └──► Auto-Generated Boards ───► For Humans: Clean developer overviews
+             ├── docs/INDEX.md         - Categorized documentation catalog
+             ├── tasks/STATUS.md       - Task liveness & stagnancy alerts (>14d ⚠️)
+             └── CLEANUP.md            - Automated decay review queue (>30d)
 ```
+
+| Layer | File Artifact | Role | Core Mechanism |
+|---|---|---|---|
+| **Single Source of Truth (SSOT)** | `.context/**/*.md` | Knowledge & State Definition | Frontmatter metadata, vertically anchoring code lines (`code://...#L10`) |
+| **Fast Compilation Engine** | `.context/scripts/sync_bundle.py` | State Synchronization & Indexing | <15ms full scan, topology validation, schema enforcement, zero dependencies |
+| **Machine Fast Index (AI)** | `.context/manifest.jsonl` | Instant Agent Triage | One JSON line per concept, stream-filterable via Unix pipes, saves 99% tokens |
+| **Human View Layer (Humans)** | `INDEX.md` / `STATUS.md` / `CLEANUP.md` | Developer Overview Boards | 100% auto-derived, real-time views of catalogs, task age, and review queue |
 
 ### Architectural Principles
 
@@ -126,20 +124,21 @@ flowchart TD
 
 The bundle implements a lifecycle state machine that solves both **context loss** and **knowledge rot**:
 
-```mermaid
-flowchart TD
-    S1["<b>Stage 1: Scratchpad</b> (<code>.context/TODO.md</code>)<br/>• Out-of-scope discoveries & quick todos<br/>• Tagged with [global] or [task:slug], 0 token overhead"]
-    
-    S2["<b>Stage 2: Multi-Session Tasks</b> (<code>.context/tasks/&lt;slug&gt;/</code>)<br/>• Strict two-gateway admission (Prevents task bloat)<br/>• Stagnancy alerts (Untouched for >14d marked ⚠️ Stagnant)"]
-    
-    S3["<b>Stage 3: Promotion to Baseline</b> (<code>.context/docs/architecture-*.md</code>)<br/>• Extracted upon task completion, code://... anchoring<br/>• Marked pinned: true for lifetime GC protection"]
-    
-    S4["<b>Stage 4: Archival & GC</b> (<code>.context/CLEANUP.md</code>)<br/>• Finished tasks >30d queued for review<br/>• Pre-completion audit checks TODO.md"]
-
-    S1 -->|Evaluate & Admit| S2
-    S2 -->|Extract Insights| S3
-    S2 -->|Inactive >30d| S4
-    S3 -.->|Guides Future Tasks| S2
+```text
+[1. Scratchpad]         .context/TODO.md
+                        Lightweight scratchpad • Tagged [global] or [task:<slug>] • Zero token overhead
+                              │
+                              ▼ (Strict Admission: User command OR Agent proposal with human approval)
+[2. Multi-Session Task] .context/tasks/<task-slug>/
+                        Controller + log separation • Liveness alerts (>14d ⚠️) • Auto-split progress.md
+                              │
+                              ▼ (Task Concluded: Extract baseline architecture & playbooks)
+[3. Core Specification] .context/docs/architecture-*.md / playbook-*.md
+                        Living project baseline • Anchors code://...#L10 • pinned: true protection
+                              │
+                              ▼ (Decay Lifecycle: Completed & untouched for >30d)
+[4. Lifecycle Archival] .context/CLEANUP.md
+                        Automated decay queue • Pre-completion audit prevents orphaned tasks
 ```
 
 ### 1. Stage 1: Lightweight Scratchpad (`TODO.md`)
