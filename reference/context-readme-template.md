@@ -1,12 +1,12 @@
 # Agent Context Bundle (.context/) Workspace Guide
 
-`.context/` 是面向人类开发者与 AI Agent 的本地工作区与知识图谱底座。统一存放项目开发过程中的架构分析、问题排查、跨会话交接（Handoff）、一次性验证脚本、评测数据与沉淀的执行手册（Playbooks）。整体通过 `.gitignore` 排除，不污染 Git 主分支代码与提交历史。
+`.context/` 是面向人类开发者与 AI Agent 的工作区与知识图谱底座。统一存放项目开发过程中的架构分析、问题排查、跨会话交接（Handoff）、一次性验证脚本、评测数据与沉淀的执行手册（Playbooks）。支持**团队共享模式**（精细化 `.gitignore`，核心资产进版本库）或**本地私有沙盒模式**（整体 `.gitignore` 排除，仅本地生效）。
 
 ---
 
 ## 1. Layout 目录布局
 
-- `docs/` — 常青知识文档（架构设计、Playbook、排查总结、交接记录）。
+- `docs/` — 长期核心规范（架构设计、Playbook、排查总结、交接记录）。
 - `research/` — 跨任务共享的研究与专项评测数据。
 - `tasks/<slug>/` — 准入的任务单元。参见 [tasks/STATUS.md](tasks/STATUS.md)（状态看板）与 [tasks/REGISTRY.md](tasks/REGISTRY.md)（任务准入表）。
 - `scripts/` — 核心自动化引擎（`sync_bundle.py`、`bump_updated.py`）。
@@ -119,8 +119,9 @@
 }
 ```
 
-### 3.3 Git Pre-commit 兜底
-执行 `.context/scripts/install_git_hook.sh` 安装本地提交拦截器，在执行 `git commit` 时若暂存了 `.context/` 改动，自动编译刷新索引。
+### 3.3 Git Pre-commit 兜底（仅团队共享模式）
+当工程采用团队共享模式（未在 `.gitignore` 中整体排除 `.context/`）时，执行 `.context/scripts/install_git_hook.sh` 安装提交拦截器。在执行 `git commit` 时若暂存了 `.context/` 改动，自动编译刷新索引并一同提交。
+> *注：若采用本地私有沙盒模式（整体忽略 `.context/`），Git 提交将自动忽略该目录，同步工作完全依赖上述 3.1 / 3.2 节的 Agent 原生 Hook。*
 
 ---
 

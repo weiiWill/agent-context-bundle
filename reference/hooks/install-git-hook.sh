@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 # install-git-hook.sh - Installs or appends pre-commit hook to maintain .context bundle consistency
+# NOTE: Only applicable when .context/ is tracked in Git (Team-Shared Mode with granular .gitignore).
 set -euo pipefail
 
 GIT_DIR=$(git rev-parse --git-dir 2>/dev/null || true)
 if [ -z "$GIT_DIR" ]; then
     echo "⚠️ Not a git repository. Skipping git hook installation."
+    exit 0
+fi
+
+# Check if .context/ is globally ignored by .gitignore (Local-Only Mode)
+if git check-ignore -q .context 2>/dev/null; then
+    echo "ℹ️ .context/ is globally ignored by .gitignore (Local-Only Mode)."
+    echo "   Git pre-commit hook will not trigger on .context changes and is skipped."
+    echo "   Real-time consistency is handled by IDE/Agent PostToolUse hooks."
     exit 0
 fi
 
@@ -33,4 +42,4 @@ fi
 EOF
 
 chmod +x "$HOOK_FILE"
-echo "✅ Context Bundle pre-commit hook installed successfully in $HOOK_FILE"
+echo "✅ Context Bundle pre-commit hook installed successfully in $HOOK_FILE (Team-Shared Mode)"

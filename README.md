@@ -119,8 +119,8 @@ invoke_subagent(
 - Scans target project for `.gitignore` and `AGENTS.md`.
 - Generates `.context/{docs,research,tasks,scripts}` skeleton.
 - Seeds `sync_bundle.py` and `bump_updated.py`.
-- Injects workspace instructions (`.context/AGENTS.md`, `TODO.md`, `REGISTRY.md`).
-- Appends `.context/` to `.gitignore` and links into root `AGENTS.md`.
+- Configures Git tracking strategy: **Team-Shared** (granular `.gitignore` + pre-commit hook) or **Local-Only** (full `.gitignore` + IDE/Agent hooks).
+- Links `.context/AGENTS.md` into repository root `AGENTS.md`.
 - Compiles initial `manifest.jsonl` and returns health status.
 
 ### 2. `maintain` Workflow (Routine Audit & Self-healing)

@@ -14,7 +14,7 @@ description: >-
 
 开发过程中会产生大量高价值的上下文信息：架构分析、问题排查、跨会话交接记录、临时验证脚本、评测中间产物等。若直接提交进 Git 会污染仓库主干与提交历史；若散落在本地则容易流失且无法被 AI Agent 有效检索。
 
-本项目规范将本地工作区定义为项目级 **Knowledge Bundle**（默认目录为 `.context/`，整体由 `.gitignore` 排除）：
+本项目规范将工作区定义为项目级 **Knowledge Bundle**（默认目录为 `.context/`，支持**团队共享模式**与**本地私有沙盒模式**）：
 1. **零外部依赖**：纯 Markdown + YAML Frontmatter，无需额外数据库或专属 SDK。
 2. **路径即唯一身份（Concept as ID）**：每个文件是一个 Concept，去扩展名的相对路径即为唯一 ID（如 `tasks/api-migration`）。
 3. **图谱化关联（Knowledge Graph）**：文档之间通过标准 Markdown 相对链接引用；文档与代码资产通过 Frontmatter 的 `resources`（如 `code://src/service.go#L30`）锚定。
@@ -122,12 +122,13 @@ invoke_subagent(
    - 基于 `reference/tasks-registry-template.md` 创建 `.context/tasks/REGISTRY.md`（任务准入表模板）。
 
 5. **配置工程隔离与自动化守护 (Multi-Platform Hook Matrix)**：
-   - 在项目根目录 `.gitignore` 中追加一行 `.context/`，确保过程资产不污染 Git；
+   - **Git 纳管策略选择与配置**：
+     - **方案 A（团队共享模式，默认推荐）**：在 `.gitignore` 中配置精细化忽略（仅忽略 `.context/TODO.md`、`tasks/*/progress.md`、`tasks/*/{inputs,outputs}/`），核心文档与 `manifest.jsonl` 纳入 Git 共享；执行 `bash .context/scripts/install_git_hook.sh` 安装 Git 提交拦截器。
+     - **方案 B（本地私有沙盒模式）**：若严禁向主仓库提交任何辅助目录，在 `.gitignore` 中追加一行 `.context/` 整体排除，脚本将自动跳过 Git Hook，全权由 Agent 原生 Hook 负责实时同步。
    - 在仓库根目录 `AGENTS.md` 中追加文档维护章节与 `.context/AGENTS.md` 路由指引；
    - **自动化 Hook 矩阵感知与安装**：
      - 若检测到 Claude Code 环境（或存在 `.claude/` 目录），参考 `reference/hooks/claude-settings.json` 在 `.claude/settings.local.json` 中配置 `PostToolUse` 实时同步；
-     - 若检测到 Google Antigravity 环境（或存在 `.agents/` 目录），参考 `reference/hooks/antigravity-hooks.json` 在 `.agents/hooks.json` 中配置原生 Hook；
-     - 执行 `bash .context/scripts/install_git_hook.sh` 安装本地 Git 提交兜底拦截器。
+     - 若检测到 Google Antigravity 环境（或存在 `.agents/` 目录），参考 `reference/hooks/antigravity-hooks.json` 在 `.agents/hooks.json` 中配置原生 Hook。
 
 6. **初次索引编译与自检**：
    - 运行 `python3 .context/scripts/sync_bundle.py`；
