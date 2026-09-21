@@ -2,7 +2,8 @@
 
 # 🧠 Agent Context Bundle
 
-**A Zero-Dependency, Self-Governing Knowledge Graph & Context Workspace for AI Coding Agents**
+**A lightweight local project memory for AI coding agents (Claude Code, Cursor, etc.)**  
+*Zero Git pollution • Save 99% tokens • Stop context amnesia • No database required*
 
 <p align="center">
   <a href="README_EN.md">English</a> •

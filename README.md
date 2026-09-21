@@ -2,7 +2,8 @@
 
 # 🧠 Agent Context Bundle
 
-**面向 AI 编程智能体的零外部依赖、自愈型本地知识图谱与上下文工作区底座**
+**给 AI 编程助手（Claude Code / Cursor 等）的本地项目记忆库**  
+*不污染 Git • 省 99% Token • 跨会话任务与架构经验永不丢失 • 免配数据库*
 
 <p align="center">
   <a href="README.md">简体中文</a> •
@@ -10,152 +11,150 @@
 </p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![格式: 纯净 Markdown + YAML](https://img.shields.io/badge/Format-Markdown%20%2B%20YAML-success.svg)](#-核心架构设计)
-[![检索延迟: <5ms](https://img.shields.io/badge/Query%20Speed-%3C5ms-orange.svg)](#-token-预算与性能基准)
-[![跨智能体支持: Claude Code | Cursor | Antigravity | Codex](https://img.shields.io/badge/Agents-Claude%20Code%20%7C%20Cursor%20%7C%20AGY-purple.svg)](#-多平台自动化与守护矩阵)
+[![格式: 纯 Markdown + YAML](https://img.shields.io/badge/Format-Markdown%20%2B%20YAML-success.svg)](#-核心架构设计)
+[![检索延迟: <5ms](https://img.shields.io/badge/Query%20Speed-%3C5ms-orange.svg)](#-token-预算与性能实测)
+[![支持智能体: Claude Code | Cursor | Antigravity | Codex](https://img.shields.io/badge/Agents-Claude%20Code%20%7C%20Cursor%20%7C%20AGY-purple.svg)](#-全自动守护不再手动维护)
 
 <p align="center">
-  <a href="#-核心痛点ai-智能体的上下文悖论">核心痛点</a> •
+  <a href="#-为什么需要它解决-ai-编程的三大痛点">为什么需要它</a> •
   <a href="#-核心架构设计">核心架构</a> •
-  <a href="#-知识流转漏斗四阶段">知识漏斗</a> •
+  <a href="#-知识流转从随手记到长期规范的-4-步">4 步流转</a> •
   <a href="#-快速开始">快速开始</a> •
-  <a href="#-token-预算与性能基准">Token 预算</a> •
-  <a href="#-多平台自动化与守护矩阵">自动化守护</a> •
-  <a href="#-设计决策与常见疑问-faq">FAQ</a>
+  <a href="#-token-预算与性能实测">性能表现</a> •
+  <a href="#-全自动守护不再手动维护">自动守护</a> •
+  <a href="#-常见疑问-faq">FAQ</a>
 </p>
 
 </div>
 
 ---
 
-## ⚡ 核心痛点：AI 智能体的上下文悖论
+## ⚡ 为什么需要它？解决 AI 编程的三大痛点
 
-随着 AI 编程助手从“单轮代码补全”演进为“跨多会话自主执行智能体”（如 Claude Code、Google Antigravity、Cursor、OpenAI Codex），智能体与开发者在工程演进中会高频产生大量极具价值的中间态知识：
+在用 Claude Code、Cursor、Google Antigravity 等 AI 编程智能体做复杂项目时，我们经常遇到一个死结：**AI 总是“做完就忘”，换个会话就失忆，而想让它记住又极耗 Token。**
 
-- 🏗️ **架构决策与深度排查**：系统设计方案、不变量约束、根因分析报告、性能压测结论。
-- 🤝 **跨会话上下文连续性**：在切换模型、重开会话或跨天推进大任务时的状态无缝交接。
-- 🔬 **临时验证资产**：一次性排查复现脚本、评测数据集、链路跟踪日志。
+开发过程中产生的大量高价值内容（系统架构设计、复杂 Bug 排查记录、跨会话交接、临时验证脚本），目前往往无处安放：
 
-### 传统管理方式的三大死穴
-| 管理方式 | 致命缺陷 |
+| 传统做法 | 为什么不可行？ |
 |---|---|
-| **直接提交进主仓 Git** | 大量充斥未定型的个人草稿与过程噪音，严重污染 Git 提交历史与代码审查（PR）。 |
-| **散落在本地无序文件** | 缺乏状态机与时效追踪，文档迅速腐烂失效，智能体在跨会话时面临严重的“上下文失忆”。 |
-| **引入外部向量数据库/SaaS** | 强依赖外部后台常驻进程与专属 SDK，存在数据锁定风险，且人类开发者在源码目录内完全不可见。 |
+| **直接提进 Git 仓库** | 充斥大量个人草稿和临时排查日志，严重污染主分支代码与提交历史。 |
+| **随便建本地文档** | 缺乏统一规范与更新机制，文档写完就落灰腐烂；新建会话后 AI 根本找不到。 |
+| **外挂向量数据库 / SaaS 工具** | 必须安装后台常驻服务或买商业产品，过度复杂，且人类开发者在代码目录里看不到。 |
 
-### 我们的解法：`Agent Context Bundle`
-一套位于 `.context/` 的标准化本地工作区，由极其轻量的毫秒级编译引擎（`sync_bundle.py`）驱动。它将本地 Markdown 文档重塑为一个**高内聚、可瞬时检索、具备自我治理能力的知识图谱**：
-1. **<5ms 极速检索，Token 开销削减 99%**：基于单行 JSONL（`manifest.jsonl`），智能体按需靶向加载，无需全量读取大文件。
-2. **生命周期自愈，永不腐烂**：内置时间戳自动续期、>14 天活跃任务停滞预警与 >30 天超期垃圾回收。
-3. **垂直强锚定物理代码**：通过 `code://path/to/file.go#L42-L80` 直通源码行，彻底杜绝文档与代码脱节。
+### 我们的解法：为 AI 打造标准化的本地记忆工作区
+只需在项目根目录建一个 `.context/` 目录，搭配轻量脚本 `sync_bundle.py`，就能获得：
+1. **跨会话不失忆**：任务进度、核心架构、排障经验结构化留存，新建会话秒级唤醒；
+2. **极速检索，节省 99% Token**：AI 通过单行索引（`manifest.jsonl`）靶向检索，**单次定位仅耗费不到 300 Token，延迟 <5ms**，不再把几万字文档全丢进上下文；
+3. **直连业务代码**：文档内直接标记 `code://src/service.go#L42-L80`，AI 一键直达代码实现；
+4. **完全自动化，文档永不落灰**：保存文件自动打卡更新日期，长期不动自动提醒清理，零维护心智负担。
 
 ---
 
 ## 📐 核心架构设计
 
+整个记忆库采用**“唯一事实源 + 毫秒级自动生成视图”**的设计模式：
+
 ```text
                         ┌──────────────────────────────────────────┐
-                        │    Markdown Frontmatter (YAML)           │
-                        │    - 唯一事实来源 (Single Source of Truth)   │
-                        │    - resources: code://... 垂直代码锚点   │
+                        │      Markdown 头部元数据 (YAML)           │
+                        │    - 唯一事实源 (Single Source of Truth) │
+                        │    - 绑定源码: resources: code://...     │
                         └────────────────────┬─────────────────────┘
                                              │
-                                    sync_bundle.py (<15ms)
+                                  sync_bundle.py (极速编译 <15ms)
                                              │
              ┌───────────────────────────────┴───────────────────────────────┐
              ▼                                                               ▼
 ┌───────────────────────────────┐                               ┌───────────────────────────────┐
-│     manifest.jsonl            │                               │    多维只读汇总看板           │
-│  [面向智能体的结构化单行索引]  │                               │    [面向人类开发者的全局大盘] │
-│  - 每文档仅占单行 JSON        │                               │  - docs/INDEX.md (分类索引)   │
-│  - grep / jq 耗时 <5ms        │                               │  - tasks/STATUS.md (任务告警) │
-│  - 单次收敛仅耗费 <300 Token  │                               │  - CLEANUP.md (待归档清单)    │
+│     manifest.jsonl            │                               │       多维人类看板            │
+│  [面向 AI 的结构化索引]       │                               │    [面向开发者的汇总大盘]     │
+│  - 每篇文档仅占一行 JSON      │                               │  - docs/INDEX.md (分类手册)   │
+│  - grep / jq 秒级过滤 <5ms    │                               │  - tasks/STATUS.md (任务告警) │
+│  - 筛选定位只需 <300 Token    │                               │  - CLEANUP.md (待归档清单)    │
 └───────────────────────────────┘                               └───────────────────────────────┘
 ```
 
-### 架构设计哲学
+### 核心设计原则
 
-1. **零外部依赖（Zero External Dependencies）**：纯文本 Markdown + YAML Frontmatter，无需任何本地数据库、常驻守护进程或特定云服务。
-2. **路径即唯一身份（Concept as ID）**：每个文件代表一个知识概念（Concept），去除扩展名的相对路径即为其全局唯一 ID（例如 `docs/architecture-gateway`、`tasks/token-migration`）。
-3. **双向知识拓扑网络（Bi-Directional Knowledge Topology）**：
-   - **横向图谱（Doc $\leftrightarrow$ Doc）**：文档间通过标准 Markdown 相对链接互联（`[会话缓存设计](architecture-cache.md)`）。
-   - **纵向图谱（Doc $\rightarrow$ Code）**：通过 Frontmatter 显式锚定物理代码行（`code://src/auth/jwt.go#L42-L80`）。
-4. **以 Frontmatter 为唯一事实来源（SSOT）**：文档自身管理元数据；结构化索引（`manifest.jsonl`）与汇总看板（`INDEX.md`、`STATUS.md`、`CLEANUP.md`）均为纯派生物，15ms 内可随时全量重新编译。
-5. **解耦的 Git 双纳管模式（Dual-Mode Git Strategy）**：
-   - **团队共享模式（推荐）**：精细化忽略草稿与流水日志，核心架构与索引纳管进 Git 版本库，全团队与 CI 共享。
-   - **本地私有沙盒模式**：在 `.gitignore` 中整体忽略 `.context/`，作为个人本地私有辅助底座。
+1. **零外部依赖**：纯原生 Markdown + YAML Frontmatter，无需配置任何数据库、常驻守护进程或外部网络环境。
+2. **文件路径即唯一 ID**：每个文档去后缀后的路径就是唯一标识（如 `docs/architecture-gateway`、`tasks/token-migration`）。
+3. **文档与代码双向互联**：
+   - **文档连文档**：标准 Markdown 相对链接（`[会话缓存设计](architecture-cache.md)`）；
+   - **文档连代码**：在文档头直接指定物理代码行（`code://src/auth/jwt.go#L42-L80`）。
+4. **灵活的 Git 纳管模式**：
+   - **团队共享模式（推荐）**：精细化忽略临时流水，将核心架构、排障手册与索引提交至 Git，全团队与 CI 共享；
+   - **本地私有沙盒模式**：在 `.gitignore` 中整体忽略 `.context/`，完全作为个人本地辅助，不向代码库提交一行额外内容。
 
 ---
 
-## 🗂️ 标准目录骨架
+## 🗂️ 标准目录结构
 
 ```text
 .context/
-├── AGENTS.md                         # 本地工作区指引与渐进式检索 SOP (L1/L2/L3)
-├── TODO.md                           # 阶段 1：轻量带归属草稿纸 (不进索引，0 Token 损耗)
-├── manifest.jsonl                    # [编译产物] 面向智能体的单行 JSON 结构化高速检索索引
-├── CLEANUP.md                        # [编译产物] 生命周期治理：超 30 天未更新的归档候选表
-├── docs/                             # 阶段 3：长期长效沉淀的核心基线资产
-│   ├── INDEX.md                      # [编译看板] 自动按类型分类聚合的知识目录大盘
-│   ├── architecture-<slug>.md        # 系统核心架构设计与重大决策 ADR (无日期后缀)
-│   ├── playbook-<slug>.md            # 标准排障手册、压测及调试 Runbook (无日期后缀)
-│   └── handoff-<slug>-<YYYYMMDD>.md  # 带有日期后缀的阶段交接与快照
-├── tasks/                            # 阶段 2：跨多轮会话推进的重量级任务舱
-│   ├── REGISTRY.md                   # 任务准入总表 (防膨胀双通道管控)
-│   ├── STATUS.md                     # [编译看板] 任务进展、更新天数与停滞告警看板
+├── AGENTS.md                         # 规范手册：教 AI 如何高效查阅本工作区
+├── TODO.md                           # 步骤 1：轻量随手草稿纸 (带归属前缀，0 Token 损耗)
+├── manifest.jsonl                    # [自动编译] 面向 AI 的单行 JSON 索引，供快速检索
+├── CLEANUP.md                        # [自动编译] 任务超时与待归档清单
+├── docs/                             # 步骤 3：长期沉淀的核心规范与经验
+│   ├── INDEX.md                      # [自动编译] 自动按类型分类聚合的知识目录
+│   ├── architecture-<slug>.md        # 核心架构设计与重大决策 ADR (不带日期后缀)
+│   ├── playbook-<slug>.md            # 踩坑总结、排障手册与验证流程 (不带日期后缀)
+│   └── handoff-<slug>-<YYYYMMDD>.md  # 阶段交接与工作快照 (带日期后缀)
+├── tasks/                            # 步骤 2：跨多轮会话推进的复杂任务
+│   ├── REGISTRY.md                   # 任务准入表 (防任务无限膨胀)
+│   ├── STATUS.md                     # [自动编译] 任务状态与逾期告警大盘
 │   └── <task-slug>/
-│       ├── README.md                 # 任务主控枢纽 (Frontmatter 包含状态与代码锚点)
-│       ├── progress.md               # 线性推进流水日志 (满 200 行自动切分为归档卷)
-│       └── (选填) plans/ docs/       # 任务名下的子方案与专属文档
-├── research/                         # 跨任务共享的技术选型、Benchmark 与算法评测
+│       ├── README.md                 # 任务主控 (记录目标、状态与关键决策)
+│       ├── progress.md               # 线性推进流水 (超 200 行自动切卷归档)
+│       └── (选填) plans/ docs/       # 任务名下的子方案
+├── research/                         # 跨任务的技术调研、压测评测与选型分析
 └── scripts/
-    ├── sync_bundle.py                # 核心同步引擎：编译索引与渲染看板 (<15ms)
-    ├── bump_updated.py               # 时间戳自动续期脚本 (原子级更新 frontmatter updated)
-    └── install_git_hook.sh           # Git pre-commit 拦截器安装脚本 (智能识别 gitignore)
+    ├── sync_bundle.py                # 核心同步引擎：扫描全仓并编译索引 (<15ms)
+    ├── bump_updated.py               # 时间戳自动续期脚本 (修改文件时自动打卡)
+    └── install_git_hook.sh           # Git pre-commit 提交拦截器 (智能识别 gitignore)
 ```
 
 ---
 
-## 🌪️ 知识流转漏斗（四阶段生命周期）
+## 🌪️ 知识流转：从随手记到长期规范的 4 步
 
-系统通过严格的状态机驱动知识在四个阶段有序演进，彻底解决**“上下文丢失”**与**“无用垃圾膨胀”**的矛盾：
+系统提供了一套像流水线一样清晰的状态机，杜绝“知识写完就丢”或“垃圾任务膨胀”：
 
 ```text
-【阶段 1：草稿留存】  .context/TODO.md
-          │            - 明确归属前缀：[global] 全局待办 或 [task:<slug>] 旁路待办
-          ▼            - 绝对排除在索引外，0 Token 检索干扰。
-【阶段 2：任务排查】  .context/tasks/<task-slug>/
-          │            - 严格双通道准入 (用户显式指令 或 智能体提议+人工明确批准)
-          ▼            - 活跃度时效治理：进行中任务 >14 天未改动亮起 ⚠️ Stagnant 告警。
-【阶段 3：长效沉淀】  .context/docs/architecture-*.md / playbook-*.md
-          │            - 任务结项时萃取核心不变量；pinned: true 获得免清理特权。
-          ▼            - 垂直绑定源码行：resources: code://src/path#L10。
-【阶段 4：归档清理】  .context/CLEANUP.md
-                       - 已完成/已废弃文档超 30 天未触碰自动进入清理待审池。
-                       - 结项闭环核对：结项时主动检索 TODO.md，杜绝孤儿待办。
+【第 1 步：临时随手记】  .context/TODO.md
+            │             - 记零碎待办与主任务旁路发现，强制带 [global] 或 [task:<slug>]
+            ▼             - 完全不进索引，0 字节干扰。
+【第 2 步：多会话任务】  .context/tasks/<task-slug>/
+            │             - 严格准入：仅在用户显式指令或提议获批后新建，杜绝任务泛滥；
+            ▼             - 状态时效追踪：超过 14 天未推进的任务自动标红 ⚠️ Stagnant。
+【第 3 步：沉淀为规范】  .context/docs/architecture-*.md / playbook-*.md
+            │             - 任务结项时萃取高价值架构与手册；直连源码行 code://path#L10；
+            ▼             - 标记 pinned: true 永久保护免被清理。
+【第 4 步：归档与清理】  .context/CLEANUP.md
+                          - 已完成或已废弃超 30 天的内容，自动进清理待审池；
+                          - 任务结项强制检查 TODO.md，消灭孤儿待办。
 ```
 
-### 1. 阶段 1：轻量草稿留存（`TODO.md`）
-- **核心定位**：极轻量随手记。供开发者随时记录零碎想法；供智能体在做主线任务时记录发现的次要旁路问题，**严禁节外生枝扩大改动面**。
-- **强制归属标签（Scope Attribution）**：
+### 1. 第 1 步：临时随手记（`TODO.md`）
+- **定位**：轻量草稿纸。开发者随手记灵感；AI 在做主线任务时如果发现了不相关的旁路小 Bug，**严禁节外生枝扩大改动面**，统一记到这里。
+- **强制归属标签**：
   ```markdown
   - [ ] [global] Makefile: 补充本地压测 docker-compose 启动命令
   - [ ] [task:auth-refactor] src/auth/jwt.go#L42: 顺手修复 Token 过期未捕获边界异常
   ```
-- **豁免索引**：编译脚本完全忽略 `TODO.md`，保证 0 字节进入全局索引。
 
-### 2. 阶段 2：任务专项排查（`tasks/<slug>/`）
-- **严格准入双通道机制（Strict Two-Gateway Admission）**：Task 是跨多会话的大型重量级专项，**严禁智能体擅自建目录立项**。仅允许两种合法通路：
-  1. *通道 1：用户显式指令*（开发者主动要求立项）；
-  2. *通道 2：智能体提议拆分 + 必须人工批准*（智能体发现任务超纲，说明原因提议拆分，经用户明确许可后方可立项）。
-- **主控与日志双核分离**：
-  - `README.md`：主控枢纽，记录 Frontmatter 元数据、目标、代码锚点与核心决策；
-  - `progress.md`：纯线性执行流水。编辑流水时，Hook 自动将打卡时间重定向到 `README.md`。
-- **自动分卷归档**：流水日志达到约 20-30 条时，自动切分出 `progress-archive-YYYYMMDD-YYYYMMDD.md`，并在原位置留下总结摘要。
+### 2. 第 2 步：多会话任务执行（`tasks/<slug>/`）
+- **严格准入双通道（防任务膨胀）**：AI **绝不能自作主张新建任务目录**。仅支持两条通路：
+  1. *通道 1：用户显式下达立项指令*；
+  2. *通道 2：AI 提议拆分并由人工明确批准*（AI 发现任务过大，说明原因提议拆分，经确认后方可建目录）。
+- **主控与流水日志分离**：
+  - `README.md`：核心大纲与状态（包含 Frontmatter 元数据）；
+  - `progress.md`：流水账。修改它时，后台 Hook 会自动把修改时间算到 `README.md` 头上；
+- **流水日志超长自动分卷**：当推进日志达到约 200 行时，自动切分出 `progress-archive-*.md`，当前文件保留精炼摘要。
 
-### 3. 阶段 3：长效成果沉淀（`docs/`）
-- **基线升格（Baseline Promotion）**：任务结项时，把沉淀的高复用架构设计与排障排查步骤提炼为 `docs/architecture-<slug>.md` 或 `docs/playbook-<slug>.md`。
-- **源码强锚定**：
+### 3. 第 3 步：沉淀为核心规范与手册（`docs/`）
+- **经验升格**：任务完成结项时，把沉淀下来的设计与排障套路提炼为 `docs/` 下的规范。
+- **垂直直连业务代码**：
   ```yaml
   ---
   type: architecture
@@ -168,9 +167,9 @@
   ---
   ```
 
-### 4. 阶段 4：生命周期治理（`CLEANUP.md`）
-- **自动垃圾回收（GC）**：任何处于 `completed`、`resolved` 或 `archived` 状态且**超 30 天未触碰**的文件，自动汇集至 `CLEANUP.md`，提醒开发者归档或移出。
-- **结项审计闭环**：智能体在将任务标记为 `completed` 前，强制主动执行 `grep 'task:<slug>' .context/TODO.md`，确保派生遗留待办无一遗漏。
+### 4. 第 4 步：定期归档与清理（`CLEANUP.md`）
+- **自动垃圾回收提示**：已完成且**超过 30 天未触碰**的文件，自动列入 `CLEANUP.md` 提醒整理或移出。
+- **结项检查闭环**：任务结项前，AI 会主动运行 `grep 'task:<slug>' .context/TODO.md`，杜绝遗留孤儿待办。
 
 ---
 
@@ -179,7 +178,6 @@
 ### 1. 安装方式
 
 #### 推荐：作为 Claude Code / AGY 技能直接安装
-克隆至个人的 Agent 技能目录：
 ```bash
 git clone https://github.com/weiiWill/agent-context-bundle.git ~/.claude/skills/agent-context-bundle
 ```
@@ -189,25 +187,23 @@ git clone https://github.com/weiiWill/agent-context-bundle.git ~/.claude/skills/
 ln -s /path/to/agent-context-bundle ~/.claude/skills/agent-context-bundle
 ```
 
-### 2. 在工程中初始化
-在你的项目目录中直接唤起智能体：
+### 2. 在项目中初始化
+在项目终端中对 AI 说：
 > *“请在本工程中初始化 Agent Context Bundle 工作区。”*
 
-编排的隔离子智能体（Sub-agent）将自动：
-1. 脚手架生成 `.context/{docs,research,tasks,scripts}` 目录及规范模板；
-2. 引导配置 Git 策略：
-   - **团队共享模式（默认）**：配置精细化 `.gitignore`，忽略流水日志，将核心架构与索引提交入库；
-   - **本地私有模式**：在 `.gitignore` 追加 `.context/` 整体忽略；
-3. 安装平台对应的自动化 Hook，并毫秒级编译初始的 `manifest.jsonl` 与看板。
+AI 将自动通过独立的 Sub-agent 执行：
+1. 一键生成 `.context/` 骨架与标准模板；
+2. 引导确认 Git 策略（团队共享纳管 或 本地私有隔离）；
+3. 安装平台对应的保存自动同步 Hook，并秒级编译出初始索引与看板。
 
 ---
 
-## ⚡ 多平台自动化与守护矩阵
+## ⚡ 全自动守护：不再手动维护
 
-实现全流程“零心智负担”。只要保存或编辑文件，Hook 即可在 15 毫秒内完成静默续期与全量看板重编译：
+保存文件后，Hook 会在 15 毫秒内自动打卡续期并重编索引，彻底解放双手：
 
 ```text
-编辑 .context/ 下文档 ──► 触发 PostToolUse Hook ──► bump_updated.py ──► sync_bundle.py ──► 刷新索引与看板
+编辑保存文档 ──► 触发 Hook ──► 自动更新修改日期 ──► 重新编译索引与看板 (<15ms)
 ```
 
 ### 1. Claude Code 原生配置（`.claude/settings.local.json`）
@@ -221,7 +217,7 @@ ln -s /path/to/agent-context-bundle ~/.claude/skills/agent-context-bundle
           "type": "command",
           "if": "Write(.context/**)",
           "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; } 2>/dev/null || true",
-          "statusMessage": "🔄 同步 .context/ 上下文包"
+          "statusMessage": "🔄 同步 .context/ 记忆库"
         }]
       },
       {
@@ -230,7 +226,7 @@ ln -s /path/to/agent-context-bundle ~/.claude/skills/agent-context-bundle
           "type": "command",
           "if": "Edit(.context/**)",
           "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; } 2>/dev/null || true",
-          "statusMessage": "🔄 同步 .context/ 上下文包"
+          "statusMessage": "🔄 同步 .context/ 记忆库"
         }]
       }
     ]
@@ -256,12 +252,12 @@ ln -s /path/to/agent-context-bundle ~/.claude/skills/agent-context-bundle
 }
 ```
 
-### 3. Git Pre-commit 兜底拦截器（`install_git_hook.sh`）
-- 执行 `bash .context/scripts/install_git_hook.sh` 安装本地提交拦截；
-- **智能 Gitignore 感知**：若检测到工程已在 `.gitignore` 中整体忽略 `.context/`，脚本将自动识别并友好退出；若属于团队共享纳管，则在提交时强制执行编译并追加 `git add`，彻底防止脱钩。
+### 3. Git Pre-commit 拦截器（`install_git_hook.sh`）
+- 运行 `bash .context/scripts/install_git_hook.sh` 安装；
+- **智能 Gitignore 识别**：若工程已在 `.gitignore` 中整体排除了 `.context/`，脚本会自动检测并跳过拦截；若属于团队共享模式，则在提交时强制重编译索引并自动暂存，杜绝脏索引入库。
 
-### 4. VSCode / Cursor 智能补全与校验
-在项目的 `.vscode/settings.json` 中配置内置的 JSON Schema：
+### 4. VSCode / Cursor 编辑自动补全
+在 `.vscode/settings.json` 中配置 Schema，编辑 Markdown 头部时支持自动补全与语法检查：
 ```json
 {
   "yaml.schemas": {
@@ -275,10 +271,9 @@ ln -s /path/to/agent-context-bundle ~/.claude/skills/agent-context-bundle
 
 ---
 
-## 📊 Token 预算与性能基准
+## 📊 Token 预算与性能实测
 
-### Token 消耗实测对比
-以包含 30 篇架构规范、5 个活跃专项任务、10 篇调研评测的中大型工程为例：
+### Token 消耗对比（以 45 篇文档的中大型项目为例）
 
 | 检索获取方式 | 扫描数据量 | 消耗 Token 上下文 | 单次检索耗时 |
 |---|---|---|---|
@@ -286,32 +281,32 @@ ln -s /path/to/agent-context-bundle ~/.claude/skills/agent-context-bundle
 | **全量读取看板大盘文件** | 3 个看板 Markdown | ~4,500 Tokens | ~150 ms |
 | **单行 `manifest.jsonl`（靶向过滤）** | 3-5 行单行 JSON | **< 300 Tokens（省 99%）** | **< 5 ms** |
 
-### 核心引擎执行基准
-- **全量扫描与编译速度**：在普通开发机上扫描 100 篇文档耗时 **< 15ms**；
+### 脚本执行性能
+- **全量扫描与编译速度**：扫描 100 篇文档耗时 **< 15ms**；
 - **内存占用**：Python 执行期常驻内存 **< 12MB**；
-- **非阻塞容灾设计（Fail-Open）**：即使遇到非致命语法解析异常，脚本恒返回 0，绝不中断智能体正常工作。
+- **防中断容灾设计（Fail-Open）**：即使遇到个别语法错误，脚本恒返回退出码 0，绝不阻断 AI 正常开发。
 
 ---
 
-## ❓ 设计决策与常见疑问 (FAQ)
+## ❓ 常见疑问 (FAQ)
 
 <details>
-<summary><b>为什么不直接使用 SQLite 或本地向量数据库 (Vector DB)？</b></summary>
+<summary><b>为什么不直接用 SQLite 或本地向量数据库 (Vector DB)？</b></summary>
 <br>
-向量数据库和嵌入式 SQL 会带来二进制文件冲突、外部守护进程依赖、Schema 升级迁移成本以及对人类开发者的不可见性。纯文本 Markdown + 单行 JSONL 具备真正的零外部依赖、完美适配 Git Diff 审查，并能借助系统自带的极速原生命令（<code>grep</code>、<code>jq</code>）实现毫秒级流式过滤。
+向量数据库和本地 SQLite 会引入二进制文件、常驻守护进程和复杂的 Schema 迁移，对人类开发者来说如同黑盒。而 Markdown + 单行 JSONL 真正做到零外部依赖，天然支持 Git Diff 审查，通过系统自带的 <code>grep</code> 和 <code>jq</code> 就能实现毫秒级快速流式过滤。
 </details>
 
 <details>
-<summary><b>为什么采用单行 JSONL 而不是常规格式化 JSON 数组？</b></summary>
+<summary><b>为什么使用单行 JSONL，而不是一个格式化的 JSON 数组？</b></summary>
 <br>
-采用 JSON 数组（<code>[...]</code>）时，任何工具都必须将整个几万字符的 JSON 解析载入内存才能读取其中一个字段。而基于 <code>manifest.jsonl</code>，智能体可以在 Shell 中直接通过流式管道精准筛选单行，完全无需把整个索引全量倾倒入上下文大模型中：
+如果是普通的 JSON 数组（<code>[...]</code>），任何读取工具都必须把整个几十 KB 的文件全量解析进内存。而使用 <code>manifest.jsonl</code>，AI 在终端里使用流式管道命令即可按需过滤目标行，完全不需要把整个索引丢进上下文模型中：
 <pre><code>grep '"type": "architecture"' .context/manifest.jsonl | jq -r '.id'</code></pre>
 </details>
 
 <details>
-<summary><b>如何彻底避免任务目录通胀和陈旧僵尸文档？</b></summary>
+<summary><b>如何防止任务越积越多导致整个目录膨胀失控？</b></summary>
 <br>
-新建 Task 受到严格的双通道准入机制管控（非用户下达指令或人工明确许可不可建目录）。同时，<code>sync_bundle.py</code> 会自动对 >14 天未触碰的任务打上 <code>⚠️ Stagnant (>14d)</code> 醒目标签，并对 >30 天已结项的任务拉入 <code>CLEANUP.md</code> 清理待审池。
+系统设立了严格的任务双通道准入机制（非用户指令或人工确认不可立项）。此外，<code>sync_bundle.py</code> 会自动把超过 14 天未推进的任务标记为 <code>⚠️ Stagnant (>14d)</code> 亮红牌，并把结项超过 30 天的任务抓进 <code>CLEANUP.md</code> 清理待审池。
 </details>
 
 ---
