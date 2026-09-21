@@ -54,24 +54,29 @@ A standardized `.context/` workspace governed by an ultra-lightweight compile-ti
 
 ## 📐 Core Architecture
 
-```text
-                        ┌──────────────────────────────────────────┐
-                        │    Markdown Frontmatter (YAML)           │
-                        │    - Single Source of Truth (SSOT)       │
-                        │    - resources: code://... anchors       │
-                        └────────────────────┬─────────────────────┘
-                                             │
-                                    sync_bundle.py (<15ms)
-                                             │
-             ┌───────────────────────────────┴───────────────────────────────┐
-             ▼                                                               ▼
-┌───────────────────────────────┐                               ┌───────────────────────────────┐
-│     manifest.jsonl            │                               │    Auto-Generated Boards      │
-│  [Machine Structured Index]   │                               │    [Human Overview Boards]    │
-│  - One JSON line per doc      │                               │  - docs/INDEX.md (Catalog)   │
-│  - Instant grep / jq <5ms     │                               │  - tasks/STATUS.md (Alerts)   │
-│  - <300 tokens per triage     │                               │  - CLEANUP.md (Review Queue)  │
-└───────────────────────────────┘                               └───────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph SSOT["Single Source of Truth (SSOT)"]
+        FM["<b>Markdown Frontmatter (YAML)</b><br/>• Structured fields: id, type, status, tags, summary<br/>• Source code anchoring: resources: code://...#L10"]
+    end
+
+    ENGINE["⚙️ <b>sync_bundle.py</b><br/>(Compile engine &lt;15ms)"]
+
+    subgraph OUTPUT_AI["For AI Agents (Fast Triage)"]
+        MANIFEST["<b>manifest.jsonl</b> (Single-Line Index)<br/>• One JSON record per document<br/>• grep / jq targeted query &lt;5ms<br/>• Single triage &lt;300 Tokens (99% savings)"]
+    end
+
+    subgraph OUTPUT_HUMAN["For Humans (Overview Boards)"]
+        INDEX["<b>docs/INDEX.md</b><br/>Categorized catalog"]
+        STATUS["<b>tasks/STATUS.md</b><br/>Task status & stagnancy alerts"]
+        CLEANUP["<b>CLEANUP.md</b><br/>Cleanup review queue"]
+    end
+
+    FM --> ENGINE
+    ENGINE --> MANIFEST
+    ENGINE --> INDEX
+    ENGINE --> STATUS
+    ENGINE --> CLEANUP
 ```
 
 ### Architectural Principles
@@ -121,19 +126,20 @@ A standardized `.context/` workspace governed by an ultra-lightweight compile-ti
 
 The bundle implements a lifecycle state machine that solves both **context loss** and **knowledge rot**:
 
-```text
-[Stage 1: Scratchpad]   .context/TODO.md
-          │              - Attributed scratchpad: [global] or [task:<slug>]
-          ▼              - Excluded from manifest. 0 token indexing overhead.
-[Stage 2: Active Task]  .context/tasks/<task-slug>/
-          │              - Strict two-gateway admission (User command OR Human-approved split)
-          ▼              - Stagnancy tracking: Active tasks untouched for >14d trigger ⚠️ alerts.
-[Stage 3: Promotion]    .context/docs/architecture-*.md / playbook-*.md
-          │              - Extracted on task completion; pinned: true grants lifetime protection.
-          ▼              - Explicitly anchored to source code via resources: code://path#L10.
-[Stage 4: Archival]     .context/CLEANUP.md
-                         - Tasks completed for >30d automatically enter review queue.
-                         - Closed-loop verification ensures zero orphaned todos.
+```mermaid
+flowchart TD
+    S1["<b>Stage 1: Scratchpad</b> (<code>.context/TODO.md</code>)<br/>• Out-of-scope discoveries & quick todos<br/>• Tagged with [global] or [task:slug], 0 token overhead"]
+    
+    S2["<b>Stage 2: Multi-Session Tasks</b> (<code>.context/tasks/&lt;slug&gt;/</code>)<br/>• Strict two-gateway admission (Prevents task bloat)<br/>• Stagnancy alerts (Untouched for >14d marked ⚠️ Stagnant)"]
+    
+    S3["<b>Stage 3: Promotion to Baseline</b> (<code>.context/docs/architecture-*.md</code>)<br/>• Extracted upon task completion, code://... anchoring<br/>• Marked pinned: true for lifetime GC protection"]
+    
+    S4["<b>Stage 4: Archival & GC</b> (<code>.context/CLEANUP.md</code>)<br/>• Finished tasks >30d queued for review<br/>• Pre-completion audit checks TODO.md"]
+
+    S1 -->|Evaluate & Admit| S2
+    S2 -->|Extract Insights| S3
+    S2 -->|Inactive >30d| S4
+    S3 -.->|Guides Future Tasks| S2
 ```
 
 ### 1. Stage 1: Lightweight Scratchpad (`TODO.md`)

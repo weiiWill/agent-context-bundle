@@ -54,24 +54,29 @@
 
 整个记忆库采用**“唯一事实源 + 毫秒级自动生成视图”**的设计模式：
 
-```text
-                        ┌──────────────────────────────────────────┐
-                        │      Markdown 头部元数据 (YAML)           │
-                        │    - 唯一事实源 (Single Source of Truth) │
-                        │    - 绑定源码: resources: code://...     │
-                        └────────────────────┬─────────────────────┘
-                                             │
-                                  sync_bundle.py (极速编译 <15ms)
-                                             │
-             ┌───────────────────────────────┴───────────────────────────────┐
-             ▼                                                               ▼
-┌───────────────────────────────┐                               ┌───────────────────────────────┐
-│     manifest.jsonl            │                               │       多维人类看板            │
-│  [面向 AI 的结构化索引]       │                               │    [面向开发者的汇总大盘]     │
-│  - 每篇文档仅占一行 JSON      │                               │  - docs/INDEX.md (分类手册)   │
-│  - grep / jq 秒级过滤 <5ms    │                               │  - tasks/STATUS.md (任务告警) │
-│  - 筛选定位只需 <300 Token    │                               │  - CLEANUP.md (待归档清单)    │
-└───────────────────────────────┘                               └───────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph SSOT["唯一事实源 (Single Source of Truth)"]
+        FM["<b>Markdown 头部元数据 (YAML Frontmatter)</b><br/>• 结构化字段: id, type, status, tags, summary<br/>• 垂直直达源码: resources: code://...#L10"]
+    end
+
+    ENGINE["⚙️ <b>sync_bundle.py</b><br/>(极速编译引擎 &lt;15ms)"]
+
+    subgraph OUTPUT_AI["面向 AI 智能体 (毫秒级检索)"]
+        MANIFEST["<b>manifest.jsonl</b> (单行结构化索引)<br/>• 每篇文档仅占一行 JSON<br/>• grep / jq 靶向检索 &lt;5ms<br/>• 单次定位仅耗 &lt;300 Tokens (省 99%)"]
+    end
+
+    subgraph OUTPUT_HUMAN["面向人类开发者 (只读全局大盘)"]
+        INDEX["<b>docs/INDEX.md</b><br/>分类检索手册"]
+        STATUS["<b>tasks/STATUS.md</b><br/>任务进度与停滞告警"]
+        CLEANUP["<b>CLEANUP.md</b><br/>超期待归档清单"]
+    end
+
+    FM --> ENGINE
+    ENGINE --> MANIFEST
+    ENGINE --> INDEX
+    ENGINE --> STATUS
+    ENGINE --> CLEANUP
 ```
 
 ### 核心设计原则
@@ -120,19 +125,20 @@
 
 系统提供了一套像流水线一样清晰的状态机，杜绝“知识写完就丢”或“垃圾任务膨胀”：
 
-```text
-【第 1 步：临时随手记】  .context/TODO.md
-            │             - 记零碎待办与主任务旁路发现，强制带 [global] 或 [task:<slug>]
-            ▼             - 完全不进索引，0 字节干扰。
-【第 2 步：多会话任务】  .context/tasks/<task-slug>/
-            │             - 严格准入：仅在用户显式指令或提议获批后新建，杜绝任务泛滥；
-            ▼             - 状态时效追踪：超过 14 天未推进的任务自动标红 ⚠️ Stagnant。
-【第 3 步：沉淀为规范】  .context/docs/architecture-*.md / playbook-*.md
-            │             - 任务结项时萃取高价值架构与手册；直连源码行 code://path#L10；
-            ▼             - 标记 pinned: true 永久保护免被清理。
-【第 4 步：归档与清理】  .context/CLEANUP.md
-                          - 已完成或已废弃超 30 天的内容，自动进清理待审池；
-                          - 任务结项强制检查 TODO.md，消灭孤儿待办。
+```mermaid
+flowchart TD
+    S1["<b>第 1 步：临时随手记</b> (<code>.context/TODO.md</code>)<br/>• 记录零碎想法与旁路次要发现<br/>• 标记 [global] 或 [task:slug]，0 索引干扰"]
+    
+    S2["<b>第 2 步：多会话任务</b> (<code>.context/tasks/&lt;slug&gt;/</code>)<br/>• 严格准入双通道 (防任务膨胀)<br/>• 活跃度时效追踪 (超 14 天标红 ⚠️ Stagnant)"]
+    
+    S3["<b>第 3 步：沉淀为规范</b> (<code>.context/docs/architecture-*.md</code>)<br/>• 任务结项萃取核心经验，直连源码 code://...<br/>• 标记 pinned: true 永久保护免被清理"]
+    
+    S4["<b>第 4 步：定期归档与清理</b> (<code>.context/CLEANUP.md</code>)<br/>• 结项超 30 天自动进清理候选池<br/>• 结项前主动闭环核对 TODO.md"]
+
+    S1 -->|评估提炼立项| S2
+    S2 -->|结项成果萃取| S3
+    S2 -->|逾期 30 天未改动| S4
+    S3 -.->|作为工程基线指导| S2
 ```
 
 ### 1. 第 1 步：临时随手记（`TODO.md`）
