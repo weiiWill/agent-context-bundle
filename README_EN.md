@@ -206,6 +206,43 @@ The isolated Sub-agent will:
    - **Local-Only**: Excludes `.context/` globally.
 3. Install platform-specific hooks and compile the initial `manifest.jsonl`.
 
+### 3. Daily Workflows & Prompts (Real-world Scenarios)
+
+Once initialized, you don't need to memorize complex commands. Natural language activates all workflows:
+
+#### Scenario A: Create & Track Multi-Session Tasks (Admission & Progress)
+- **Task Admission (Human-driven to avoid bloat)**:
+  > 🗣️ *"We need to overhaul user auth. Create a task for it: auth-refactor."*  
+  > 🤖 **Agent**: Scaffolds `tasks/auth-refactor/{README.md,progress.md}` and registers it in `tasks/REGISTRY.md`.
+- **Log Daily Progress**:
+  > 🗣️ *"Log today's progress on auth-refactor: JWT issue fixed, but spotted occasional gateway timeouts."*  
+  > 🤖 **Agent**: Appends to `progress.md`; Hook automatically renews `README.md` updated timestamp.
+
+#### Scenario B: Conclude Task & Distill Baseline Docs (Task Conclusion Gate)
+- **Task Conclusion**:
+  > 🗣️ *"The auth-refactor task is complete. Let's wrap it up."*  
+  > 🤖 **Agent**:
+  > 1. Audits `TODO.md` for orphaned `[task:auth-refactor]` items;
+  > 2. **Proactively proposes knowledge distillation**: *"Task completed. I synthesized 'Distributed Auth Architecture', shall I promote it to docs/architecture-auth.md?"*;
+  > 3. After your approval, writes the document, binds `resources: code://src/auth/jwt.go#L42` source anchors, and marks the task `completed`.
+
+#### Scenario C: Explicit Knowledge Distillation (Playbooks & Architecture)
+- **Distill Runbook**:
+  > 🗣️ *"Condense our Redis connection leak investigation into a playbook."*  
+  > 🤖 **Agent**: Formats root cause and remediation steps into `docs/playbook-redis-leak.md` with source line references.
+- **Distill Architecture**:
+  > 🗣️ *"Save our caching design as an architecture spec and mark it pinned."*
+
+#### Scenario D: Scratchpad & Out-of-Scope Todos (Zero Token Overhead)
+- **Save a Quick Note**:
+  > 🗣️ *"Note down a todo: add local load-test target to Makefile."*  
+  > 🤖 **Agent**: Appends `- [ ] [global] Makefile: Add load-test target` to `TODO.md` (zero token indexing overhead).
+
+#### Scenario E: Knowledge Base Health Audit (Self-healing)
+- **Run Routine Audit**:
+  > 🗣️ *"Audit and sync the .context knowledge bundle."*  
+  > 🤖 **Agent**: Scans for broken links, validates schemas, refreshes all boards, and reports stagnant tasks.
+
 ---
 
 ## ⚡ Multi-Agent & Hook Matrix

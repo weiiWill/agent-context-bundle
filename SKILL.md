@@ -165,6 +165,44 @@ invoke_subagent(
 
 ---
 
+### Workflow C: `task` 任务生命周期与结项闭环工作流 (Task Lifecycle & Conclusion SOP)
+
+在日常多会话长线需求开发中，规范任务的准入、推进与半自动沉淀闭环：
+
+1. **立项准入 (Task Admission)**：
+   - **触发场景**：用户显式指令（如“为 X 需求建一个任务”）或 Agent 提议拆分并经人工批准；
+   - **执行动作**：在 `.context/tasks/<task-slug>/` 下创建 `README.md`（包含 Frontmatter 元数据、目标与代码锚点）和 `progress.md`（纯线性流水），并在 `.context/tasks/REGISTRY.md` 中追加立项记录；
+   - **铁律**：严禁 Agent 未经人工明确确认擅自新建任务目录。
+
+2. **推进打卡 (Task Progress)**：
+   - **执行动作**：向 `.context/tasks/<task-slug>/progress.md` 追加时间戳推进流水；
+   - **自动续期**：底层 Hook 自动将同级 `README.md` 的 `updated:` 字段续期至今日；
+   - **自动分卷**：当 `progress.md` 累积超过 200 行时，自动切出 `progress-archive-*.md`，当前文件仅保留摘要与近期流水。
+
+3. **结项与半自动萃取闭环 (Task Conclusion Gate)**：
+   - **触发场景**：用户表示“任务已完成 / 准备结项”或 Agent 提请结项；
+   - **步骤 1（待办审计）**：执行 `grep 'task:<task-slug>' .context/TODO.md`，向开发者汇报是否有未竟待办并协助清理；
+   - **步骤 2（沉淀提议）**：Agent 主动分析该 task 的核心方案与排障经过，向开发者提请：“*本任务已完成。已梳理出《<标题>》，是否批准沉淀至 docs/<type>-<slug>.md？*”；
+   - **步骤 3（落盘更新）**：经开发者确认后，生成沉淀文档并绑定 `resources: code://...`，将任务 `README.md` 的 `status` 置为 `completed`。
+
+---
+
+### Workflow D: `distill` 文档沉淀与经验提炼工作流 (Knowledge Distillation)
+
+在日常排障或模块重构后，支持将当前会话的上下文资产快速转化为项目基线资产：
+
+1. **触发意图**：
+   - 开发者显式命令：“*把刚才排查 X 的过程沉淀一份 playbook*”、“*把刚才重构的架构设计沉淀成文档*”。
+2. **提炼与锚定规范**：
+   - 调取 `reference/doc-template.md` 规范模板；
+   - 结合当前会话中真实发生的根因分析、排查步骤或技术方案提炼正文；
+   - 必须通过 `resources` 显式锚定物理代码行（如 `code://src/service/processor.py#L45-L120`）；
+   - 根据价值设定属性：高价值核心设计命名不带日期（如 `architecture-pipeline.md`）并标记 `pinned: true`；阶段性交接带日期后缀（如 `handoff-auth-20260921.md`）；
+3. **写入与自动收录**：
+   - 写入 `docs/` 目录，底层 Hook 自动在 15ms 内刷新 `manifest.jsonl` 与 `docs/INDEX.md`。
+
+---
+
 ## 参考与模板
 
 * [Context 顶层导航与 SOP 模板](reference/context-readme-template.md)

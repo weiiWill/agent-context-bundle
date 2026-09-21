@@ -201,6 +201,43 @@ AI 将自动通过独立的 Sub-agent 执行：
 2. 引导确认 Git 策略（团队共享纳管 或 本地私有隔离）；
 3. 安装平台对应的保存自动同步 Hook，并秒级编译出初始索引与看板。
 
+### 3. 日常核心使用指令（人机协作实战场景）
+
+初始化完成后，日常开发中完全不需要记忆复杂的命令，用日常自然语言即可调度完整机制：
+
+#### 场景 A：发起与推进长线任务（Task Admission & Progress）
+- **发起立项（人工驱动防通胀）**：
+  > 🗣️ *“我们要改造用户鉴权模块，为它立项一个任务：auth-refactor。”*  
+  > 🤖 **AI 行为**：在 `tasks/auth-refactor/` 下建立主控 `README.md` 与流水 `progress.md`，并在 `tasks/REGISTRY.md` 登记。
+- **记录进展**：
+  > 🗣️ *“记录今天在 auth-refactor 的进展：已完成 JWT 颁发重构，但发现与网关中间件有偶发超时。”*  
+  > 🤖 **AI 行为**：追加流水至 `progress.md`，底层 Hook 自动打卡更新 `README.md` 的修改时间。
+
+#### 场景 B：任务完工结项与经验沉淀（Task Conclusion & Distillation）
+- **触发结项**：
+  > 🗣️ *“auth-refactor 任务已完成，准备结项。”*  
+  > 🤖 **AI 行为**：
+  > 1. 自动执行 `grep` 扫描 `TODO.md`，确认是否有遗留的 `[task:auth-refactor]` 未竟事项；
+  > 2. **主动向你提议经验萃取**：“*本任务已完成。我梳理了本次改造的核心经验《分布式鉴权架构方案》，是否批准沉淀至 docs/architecture-auth.md？*”；
+  > 3. 你回复 *“批准”* 后，AI 一键生成文档、绑定 `resources: code://src/auth/jwt.go#L42` 源码锚点，并将任务置为 `completed`。
+
+#### 场景 C：随手提炼排障手册或架构规范（Knowledge Distillation）
+- **显式提炼排障经验**：
+  > 🗣️ *“把刚才排查 Redis 连接池偶发泄漏的根因与排障步骤沉淀一份 playbook。”*  
+  > 🤖 **AI 行为**：基于标准模板提取本次会话的排查全过程，写入 `docs/playbook-redis-leak.md` 并绑定泄漏代码行，15ms 内自动收录进索引看板。
+- **显式沉淀架构设计**：
+  > 🗣️ *“把刚才讨论的多级缓存方案沉淀为 architecture 规范，标记为 pinned 永久保护。”*
+
+#### 场景 D：临时待办与旁路问题留痕（Zero-friction Scratchpad）
+- **记录不影响主线的待办**：
+  > 🗣️ *“记一个待办：后续需要给 Makefile 增加压测目标。”*  
+  > 🤖 **AI 行为**：向 `TODO.md` 追加 `- [ ] [global] Makefile: 增加压测目标`。0 字节污染索引。
+
+#### 场景 E：定期体检与知识库自愈（Health Audit & Sync）
+- **一键巡检**：
+  > 🗣️ *“巡检并同步一下 .context 知识库。”*  
+  > 🤖 **AI 行为**：全量检查 Frontmatter 格式合规性、修复 404 断链、刷新所有汇总大盘，并汇报 >14 天停滞任务与 >30 天待归档项。
+
 ---
 
 ## ⚡ 全自动守护：不再手动维护
