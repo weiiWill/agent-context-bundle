@@ -138,7 +138,7 @@ def scan_docs() -> list[dict]:
             search_files.extend(TASKS_DIR.glob(f"*/{sub}/*.md"))
 
     for f in sorted(search_files):
-        if f.name in ("INDEX.md", "README.md", "STATUS.md", "CLEANUP.md", "progress.md"):
+        if f.name in ("INDEX.md", "README.md", "STATUS.md", "CLEANUP.md", "progress.md", "AGENTS.md", "CLAUDE.md", "GEMINI.md"):
             continue
         text = f.read_text(encoding="utf-8")
         fm = parse_frontmatter(text)

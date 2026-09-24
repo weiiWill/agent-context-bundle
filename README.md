@@ -94,16 +94,18 @@ sync_bundle.py 编译引擎 (<15ms)
 
 ```text
 .context/
-├── AGENTS.md                         # 规范手册：教 AI 如何高效查阅本工作区
+├── AGENTS.md                         # 规范手册：教 AI 如何高效查阅本工作区与三级降级路径
 ├── TODO.md                           # 步骤 1：轻量随手草稿纸 (带归属前缀，0 Token 损耗)
 ├── manifest.jsonl                    # [自动编译] 面向 AI 的单行 JSON 索引，供快速检索
 ├── CLEANUP.md                        # [自动编译] 任务超时与待归档清单
 ├── docs/                             # 步骤 3：长期沉淀的核心规范与经验
+│   ├── AGENTS.md                     # [层级规约] 强制 Frontmatter 与命名范式，严禁裸写
 │   ├── INDEX.md                      # [自动编译] 自动按类型分类聚合的知识目录
 │   ├── architecture-<slug>.md        # 核心架构设计与重大决策 ADR (不带日期后缀)
 │   ├── playbook-<slug>.md            # 踩坑总结、排障手册与验证流程 (不带日期后缀)
 │   └── handoff-<slug>-<YYYYMMDD>.md  # 阶段交接与工作快照 (带日期后缀)
 ├── tasks/                            # 步骤 2：跨多轮会话推进的复杂任务
+│   ├── AGENTS.md                     # [层级规约] 严格立项准入双通道与 200 行分卷流水
 │   ├── REGISTRY.md                   # 任务准入表 (防任务无限膨胀)
 │   ├── STATUS.md                     # [自动编译] 任务状态与逾期告警大盘
 │   └── <task-slug>/
@@ -111,8 +113,11 @@ sync_bundle.py 编译引擎 (<15ms)
 │       ├── progress.md               # 线性推进流水 (超 200 行自动切卷归档)
 │       └── (选填) plans/ docs/       # 任务名下的子方案
 ├── research/                         # 跨任务的技术调研、压测评测与选型分析
+│   └── AGENTS.md                     # [层级规约] 零污染代码库、结论先行与流转退出
 └── scripts/
+    ├── AGENTS.md                     # [层级规约] 脚本工具职责与安全变更红线
     ├── sync_bundle.py                # 核心同步引擎：扫描全仓并编译索引 (<15ms)
+    ├── install_hooks.py              # 框架自感知引擎：自动探查并向 Antigravity / Claude 注入 Hook
     ├── bump_updated.py               # 时间戳自动续期脚本 (修改文件时自动打卡)
     └── install_git_hook.sh           # Git pre-commit 提交拦截器 (智能识别 gitignore)
 ```
@@ -247,6 +252,8 @@ AI 将自动通过独立的 Sub-agent 执行：
 ```text
 编辑保存文档 ──► 触发 Hook ──► 自动更新修改日期 ──► 重新编译索引与看板 (<15ms)
 ```
+
+> 💡 **全自动一键识别注入**：项目初始化或维护时，只需运行 `python3 .context/scripts/install_hooks.py`，即可自动探测当前宿主框架（Antigravity、Claude Code、Git）并实体化注入原生生命周期 Hook！也可以参考下方手动配置：
 
 ### 1. Claude Code 原生配置（`.claude/settings.local.json`）
 ```json
