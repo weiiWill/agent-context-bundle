@@ -1,133 +1,31 @@
-# Agent Context Bundle (.context/) Workspace Guide
+# Agent Context Bundle (.context/) 工作区指引
 
-`.context/` 是面向人类开发者与 AI Agent 的工作区与知识图谱底座。统一存放项目开发过程中的架构分析、问题排查、跨会话交接（Handoff）、一次性验证脚本、评测数据与沉淀的执行手册（Playbooks）。支持**团队共享模式**（精细化 `.gitignore`，核心资产进版本库）或**本地私有沙盒模式**（整体 `.gitignore` 排除，仅本地生效）。
+本目录统一存放项目开发过程中的架构方案、任务追踪、排查记录与沉淀手册。
 
----
-
-## 1. Layout 目录布局
-
-- `docs/` — 长期核心规范（架构设计、Playbook、排查总结、交接记录）。
-- `research/` — 跨任务共享的研究与专项评测数据。
-- `tasks/<slug>/` — 准入的任务单元。参见 [tasks/STATUS.md](tasks/STATUS.md)（状态看板）与 [tasks/REGISTRY.md](tasks/REGISTRY.md)（任务准入表）。
-- `scripts/` — 核心自动化引擎（`sync_bundle.py`、`bump_updated.py`）。
-- `manifest.jsonl` — [全局结构化索引] 单行 JSON 索引，供 Agent 秒级直接检索。
-- `CLEANUP.md` — [生命周期] 自动生成的待清理/待归档候选清单。
+## 1. 目录结构与职责
+- `docs/` — 长期核心规范与技术方案（架构设计、排查手册、阶段交接）。汇总看板见 [docs/INDEX.md](docs/INDEX.md)。
+- `tasks/` — 复杂专项任务工作区（每个任务为一个独立子目录）。状态监控见 [tasks/STATUS.md](tasks/STATUS.md)，准入总表见 [tasks/REGISTRY.md](tasks/REGISTRY.md)。
+- `research/` — 探索性调研、技术选型对比与评测数据。
+- `scripts/` — 本地自动化运维工具（索引同步、时效治理等）。
 - `TODO.md` — 极轻量待办草稿（纯 markdown checkbox，无需 frontmatter，不进索引）。
+- `manifest.jsonl` — 自动生成的全仓结构化索引（每行一个 JSON，供快速检索）。
 
----
+## 2. 检索方式
+- **优先查索引**：检索已有上下文时，优先通过 `manifest.jsonl`（`grep` 或 `jq`）或看板（`docs/INDEX.md`、`tasks/STATUS.md`）定位目标，避免盲目打开大量无关文件。
 
-## 2. Agent 标准操作规范 (Agent Operating SOP)
-
-任何接入本工程的 AI Agent（Claude Code、Antigravity、Cursor、Codex 等）必须遵循以下标准作业程序：
-
-### 2.1 高速检索路径 (Fast Retrieval SOP)
-- **L1 优选（极速收敛，5ms / 200 Token）**：
-  检索相关知识或任务时，**禁止盲目打开多个大 Markdown 文件**，优先用 `grep` 或 `jq` 检索 `manifest.jsonl`：
-  ```bash
-  # 查找活跃的交接文档或架构设计
-  jq -r 'select(.status=="active" and (.type=="architecture" or .type=="handoff")) | "\(.path): \(.summary)"' .context/manifest.jsonl
-  # 查找包含特定标签的资产
-  grep '"tags":.*data-pipeline' .context/manifest.jsonl
-  ```
-- **L2 降级（汇总看板兜底）**：
-  若当前环境缺失 `jq` 或 Python 运行受阻，降级阅读自动编译生成的汇总看板：
-  - 查阅文档分类：阅读 `.context/docs/INDEX.md`；
-  - 查阅任务进展与活跃度：阅读 `.context/tasks/STATUS.md`。
-- **L3 极限兜底（文件系统直查）**：
-  若看板尚未生成或损坏，直接使用目录查找：
-  - 架构与排查：`ls .context/docs/`；
-  - 任务主控：`ls .context/tasks/*/README.md`。
-
-### 2.2 安全写入与更新规范 (Safe Modification SOP)
-- **Frontmatter 强制要求**：新建或编辑文档时，头部必须包含合法的 YAML Frontmatter（`type`、`title`、`status`、`summary` 为必填项，作为唯一事实来源）。
-- **严格英文状态枚举**：统一严格使用：`active` | `draft` | `in_progress` | `paused` | `completed` | `resolved` | `archived`。
-- **自动生成的看板与索引禁止手改**：`docs/INDEX.md`、`tasks/STATUS.md`、`CLEANUP.md` 与 `manifest.jsonl` 由同步脚本自动编译，**严禁手动编辑**。
-- **修改时效维护**：编辑文档后，将 `updated:` 更新为当天（`YYYY-MM-DD`）；若配置了 Hook 守护，该动作由 Hook 自动且幂等完成。
-
-### 2.3 异常恢复与降级机制 (Graceful Fallback & Recovery)
-- **索引损坏一键重构**：若 `manifest.jsonl` 发生冲突或格式损坏，运行 `python3 .context/scripts/sync_bundle.py` 即可在毫秒内根据各文档 Frontmatter 从头重新生成全部索引与看板。
-- **缺失 Python 运行环境时**：只需手工维持 Frontmatter 语法合规，后续在宿主环境运行一次 `sync_bundle.py` 即可完成编译。
-
-### 2.4 任务边界控制与旁路待办留存 (Task Boundary & Out-of-Scope SOP)
-- **严禁节外生枝**：Agent 在执行当前主线任务时，若发现非阻塞性的旁路 Bug、次要坏味道或优化点，**严禁私自扩大本次改动范围**。
-- **带归属标签写入 TODO.md**：将旁路发现统一追加写入 `.context/TODO.md`，每条记录必须携带明确的归属作用域前缀：
-  - `[task:<task-slug>]`：归属于正在执行的特定任务（如 `- [ ] [task:auth-refactor] src/auth/jwt.go#L42: 修复边界异常`）；
-  - `[global]`：全局工程级待办，与特定任务无关（如 `- [ ] [global] 升级 CI Node 版本`）。
-- **任务结项闭环核对**：当准备将某个任务标记为 `completed` 结项时，Agent 应主动检索 `grep 'task:<task-slug>' .context/TODO.md`，向开发者汇报是否存在该任务派生的未完 TODO，由开发者决定是就地解决、转为 `[global]` 还是清理移除。
-
-### 2.5 任务立项与拆分严格准入机制 (Strict Task Admission & Split SOP)
-- **Task 是重量级实体**：`tasks/` 下的每个任务都是跨多轮会话、需要系统性推进的大型专项，**严禁任务随意膨胀**。
-- **新建 Task 仅允许以下两种途径**：
-  1. **用户显式指令**：用户明确要求立项（如“立项重构鉴权模块”或“创建任务排查内存泄漏”）；
-  2. **Agent 提议拆分 + 必须经由人工批准**：Agent 在执行已有任务时，若发现某个子问题过于复杂庞大，超出原任务边界且必须独立追踪，**严禁私自建立任务目录**。Agent 必须向用户明确说明拆分理由与预期范围，**在取得用户明确同意后**，方可在 `tasks/REGISTRY.md` 登记并创建 `tasks/<slug>/`；若用户未批准，只能作为当前任务的待办项或记入 `TODO.md`。
-
----
-
-## 3. 自动化守护矩阵 (Hooks & Enforcement)
-
-为了确保“文件修改后索引永不漂移、日期自动续期”，建议在项目中启用代码层 Hook。
-
-### 3.1 Claude Code 环境 (`.claude/settings.local.json`)
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write",
-        "hooks": [{
-          "type": "command",
-          "if": "Write(.context/**)",
-          "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; } 2>/dev/null || true",
-          "statusMessage": "🔄 同步 .context 索引"
-        }]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [{
-          "type": "command",
-          "if": "Edit(.context/**)",
-          "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; } 2>/dev/null || true",
-          "statusMessage": "🔄 同步 .context 索引"
-        }]
-      }
-    ]
-  }
-}
-```
-
-### 3.2 Google Antigravity 环境 (`.agents/hooks.json`)
-```json
-{
-  "context-bundle-sync": {
-    "PostToolUse": [
-      {
-        "matcher": "write_to_file",
-        "hooks": [{
-          "type": "command",
-          "command": "python3 .context/scripts/sync_bundle.py 2>/dev/null || true"
-        }]
-      },
-      {
-        "matcher": "replace_file_content",
-        "hooks": [{
-          "type": "command",
-          "command": "python3 .context/scripts/sync_bundle.py 2>/dev/null || true"
-        }]
-      }
-    ]
-  }
-}
-```
-
-### 3.3 Git Pre-commit 兜底（仅团队共享模式）
-当工程采用团队共享模式（未在 `.gitignore` 中整体排除 `.context/`）时，执行 `.context/scripts/install_git_hook.sh` 安装提交拦截器。在执行 `git commit` 时若暂存了 `.context/` 改动，自动编译刷新索引并一同提交。
-> *注：若采用本地私有沙盒模式（整体忽略 `.context/`），Git 提交将自动忽略该目录，同步工作完全依赖上述 3.1 / 3.2 节的 Agent 原生 Hook。*
-
----
-
-## 4. 知识流转漏斗 (Knowledge Funnel)
-
-- **草稿层**：`TODO.md` 用于天级零碎记录。
-- **任务推进**：复杂事项在 `tasks/REGISTRY.md` 登记后，创建 `tasks/<slug>/README.md` 与 `progress.md` 线性推进。
-- **长效沉淀**：任务完成后，有价值的架构与方法论提炼移入 `docs/`（如 `docs/architecture-*.md` 或 `docs/playbook-*.md`）。
-- **生命周期归档**：历史任务与快照标记为 `status: archived`，逾期 30 天自动汇总至 `CLEANUP.md`。
+## 3. 核心准则与操作红线
+1. **强制 Frontmatter**：除 `TODO.md` 与 `tasks/*/progress.md` 外，所有 Markdown 文档头部必须包含合法的 YAML Frontmatter（作为唯一事实来源）：
+   ```yaml
+   ---
+   type: architecture | playbook | handoff | investigation | note | report | task
+   title: 文档清晰标题
+   status: active | draft | in_progress | paused | completed | resolved | archived
+   created: YYYY-MM-DD
+   updated: YYYY-MM-DD
+   summary: 一句话大白话摘要（50字以内）
+   resources: []      # 关联代码行或文档锚点，如 code://src/auth.py#L1-L20
+   ---
+   ```
+2. **写后必同步闭环**：在 `.context/` 下新增、修改或删除任何文档后，**必须主动执行** `python3 .context/scripts/sync_bundle.py` 重新编译全局索引与看板。
+3. **Task 严格准入**：`tasks/` 下的任务是跨多轮会话的大型专项。**严禁 Agent 未经人类明确批准私自创建 `tasks/<slug>` 目录**。立项须在 `tasks/REGISTRY.md` 登记。
+4. **旁路问题留痕**：执行任务时若发现非阻塞性旁路问题，严禁擅自扩大改动范围，统一追加至 `.context/TODO.md`（带 `[task:<slug>]` 或 `[global]` 标签）。

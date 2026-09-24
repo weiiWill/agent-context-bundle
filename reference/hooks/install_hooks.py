@@ -74,11 +74,12 @@ def detect_and_inject(project_root: Path | None = None) -> list[str]:
         hooks_file.write_text(json.dumps(existing_hooks, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         injected.append(f"Antigravity Hook -> {hooks_file.relative_to(project_root)}")
 
-    # 2. 检测 Claude Code 环境
+    # 2. 检测 Claude Code 环境 (仅当项目本身有 Claude 标记或在 Claude 运行时中生效)
     is_claude = (
         (project_root / ".claude").is_dir()
         or (project_root / "CLAUDE.md").exists()
-        or Path.home().joinpath(".claude").is_dir()
+        or "CLAUDE_CODE" in os.environ
+        or "CLAUDE_PROJECT_DIR" in os.environ
     )
 
     if is_claude:
@@ -135,6 +136,8 @@ def detect_and_inject(project_root: Path | None = None) -> list[str]:
             post_tool.extend(claude_hook_entry)
             settings_file.write_text(json.dumps(settings_data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             injected.append(f"Claude Code Hook -> {settings_file.relative_to(project_root)}")
+        else:
+            injected.append(f"Claude Code Hook -> {settings_file.relative_to(project_root)} (已就绪)")
 
     # 3. 检测 Git 环境
     git_dir = project_root / ".git"
@@ -142,8 +145,11 @@ def detect_and_inject(project_root: Path | None = None) -> list[str]:
         install_script = project_root / ".context" / "scripts" / "install_git_hook.sh"
         if install_script.exists():
             try:
-                subprocess.run(["bash", str(install_script)], cwd=str(project_root), check=True, capture_output=True)
-                injected.append("Git Pre-commit Hook -> .git/hooks/pre-commit")
+                res = subprocess.run(["bash", str(install_script)], cwd=str(project_root), check=True, capture_output=True, text=True)
+                if "installed successfully" in res.stdout or "already installed" in res.stdout:
+                    injected.append("Git Pre-commit Hook -> .git/hooks/pre-commit")
+                elif "globally ignored" in res.stdout:
+                    injected.append("Git Pre-commit Hook -> 豁免安装 (本地沙盒模式: .context/ 已被 .gitignore 全局忽略)")
             except Exception:
                 pass
 

@@ -128,14 +128,11 @@ invoke_subagent(
    - 将 `reference/schema/context-frontmatter.schema.json` 写入 `.context/schema/context-frontmatter.schema.json`；
    - 赋予执行权限：`chmod +x .context/scripts/*.py .context/scripts/*.sh`。
 
-4. **初始化模板与层级指导文件 (Hierarchical AGENTS.md Matrix)**：
-   - 基于 `reference/context-readme-template.md` 创建 `.context/AGENTS.md`（总控工作区引导与三级降级路径）；
-   - 基于 `reference/docs-agents-template.md` 创建 `.context/docs/AGENTS.md`（文档域：严禁裸写、强制 Frontmatter 与命名规范）；
-   - 基于 `reference/tasks-agents-template.md` 创建 `.context/tasks/AGENTS.md`（任务域：双通道准入红线、200 行日志分卷、结项 SOP）；
-   - 基于 `reference/research-agents-template.md` 创建 `.context/research/AGENTS.md`（调研域：零污染代码库、结论先行）；
-   - 基于 `reference/scripts-agents-template.md` 创建 `.context/scripts/AGENTS.md`（脚本域：工具职责与变更红线）；
+4. **初始化模板与工作区指引文件 (Clean Landing SOP)**：
+   - 基于 `reference/context-readme-template.md` 创建 `.context/AGENTS.md`（极简高信噪比的工作区指引，仅保留目录职责、检索方式与核心红线）；
    - 基于 `reference/todo-template.md` 创建 `.context/TODO.md`（极轻量待办草稿，用于天级记录与旁路问题留痕）；
    - 基于 `reference/tasks-registry-template.md` 创建 `.context/tasks/REGISTRY.md`（任务准入表模板）。
+   - **拒绝规范倒灌铁律**：严禁在 `docs/`、`tasks/`、`research/`、`scripts/` 等子目录中生成冗余的 `AGENTS.md`。框架自身的元规则与设计模式由 Skill 自身承载，落地项目中只保留单一且精炼的 `.context/AGENTS.md`，防止上下文污染与 Token 浪费。
 
 5. **框架自感知与原生 Hook 实体化注入 (Framework-Aware Hook Injection)**：
    - **Git 纳管策略选择与配置**：
@@ -226,11 +223,7 @@ invoke_subagent(
 
 ## 参考与模板
 
-* [Context 顶层导航与 SOP 模板](reference/context-readme-template.md)
-* [Docs 目录专属指导模板](reference/docs-agents-template.md)
-* [Tasks 目录专属指导模板](reference/tasks-agents-template.md)
-* [Research 目录专属指导模板](reference/research-agents-template.md)
-* [Scripts 目录专属指导模板](reference/scripts-agents-template.md)
+* [Context 工作区指引模板](reference/context-readme-template.md)
 * [标准 Frontmatter 示例](reference/docs-frontmatter-example.md)
 * [Frontmatter JSON Schema 规范](reference/schema/context-frontmatter.schema.json)
 * [VSCode YAML 补全与校验配置](reference/schema/vscode-settings-snippet.json)

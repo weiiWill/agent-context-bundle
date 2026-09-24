@@ -95,18 +95,16 @@ sync_bundle.py Compilation Engine (<15ms)
 
 ```text
 .context/
-├── AGENTS.md                         # Workspace rules & L1/L2/L3 progressive discovery SOP
+├── AGENTS.md                         # Workspace rules & core invariants (Clean & unified)
 ├── TODO.md                           # Stage 1: Lightweight attributed scratchpad (Zero token overhead)
 ├── manifest.jsonl                    # [Generated Index] Compact single-line JSON index for agent triage
 ├── CLEANUP.md                        # [Generated Board] Automated cleanup review candidates (>30d inactive)
 ├── docs/                             # Stage 3: Long-term core baseline knowledge
-│   ├── AGENTS.md                     # [Scoped Rule] Strict frontmatter and naming conventions (no raw markdown)
 │   ├── INDEX.md                      # [Generated Board] Auto-categorized documentation catalog
 │   ├── architecture-<slug>.md        # Living architecture designs & ADRs (no date suffix)
 │   ├── playbook-<slug>.md            # Standard debugging & operational runbooks (no date suffix)
 │   └── handoff-<slug>-<YYYYMMDD>.md  # Time-stamped session transitions
 ├── tasks/                            # Stage 2: Multi-session complex tasks
-│   ├── AGENTS.md                     # [Scoped Rule] Dual-channel admission gate and ~200 lines split rule
 │   ├── REGISTRY.md                   # Strict task admission log (Prevents task explosion)
 │   ├── STATUS.md                     # [Generated Board] Task status, age, & stagnancy alerts
 │   └── <task-slug>/
@@ -114,9 +112,7 @@ sync_bundle.py Compilation Engine (<15ms)
 │       ├── progress.md               # Append-only chronological execution log (Auto-split at ~200 lines)
 │       └── (optional) plans/ docs/   # Sub-plans & task-specific design documents
 ├── research/                         # Multi-session evaluations, benchmarks & spike investigations
-│   └── AGENTS.md                     # [Scoped Rule] Zero pollution, evidence-first, and transition exit
 └── scripts/
-    ├── AGENTS.md                     # [Scoped Rule] Tool matrix responsibilities and safe change limits
     ├── sync_bundle.py                # Dual-layer index compiler & graph validator (<15ms)
     ├── install_hooks.py              # Framework-aware auto-detection & native hook injector
     ├── bump_updated.py               # Atomic frontmatter 'updated:' date renewer
