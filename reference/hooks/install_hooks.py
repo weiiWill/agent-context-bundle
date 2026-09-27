@@ -44,7 +44,7 @@ def detect_and_inject(project_root: Path | None = None) -> list[str]:
                         "hooks": [
                             {
                                 "type": "command",
-                                "command": "python3 .context/scripts/sync_bundle.py 2>/dev/null || true",
+                                "command": "python3 .context/scripts/sync_bundle.py",
                                 "timeout": 5
                             }
                         ]
@@ -54,7 +54,7 @@ def detect_and_inject(project_root: Path | None = None) -> list[str]:
                         "hooks": [
                             {
                                 "type": "command",
-                                "command": "python3 .context/scripts/sync_bundle.py 2>/dev/null || true",
+                                "command": "python3 .context/scripts/sync_bundle.py",
                                 "timeout": 5
                             }
                         ]
@@ -94,7 +94,7 @@ def detect_and_inject(project_root: Path | None = None) -> list[str]:
                     {
                         "type": "command",
                         "if": "Write(.context/**)",
-                        "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; } 2>/dev/null || true",
+                        "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; }",
                         "statusMessage": "Auto-syncing .context manifest and boards"
                     }
                 ]
@@ -105,7 +105,7 @@ def detect_and_inject(project_root: Path | None = None) -> list[str]:
                     {
                         "type": "command",
                         "if": "Edit(.context/**)",
-                        "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; } 2>/dev/null || true",
+                        "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; }",
                         "statusMessage": "Auto-syncing .context manifest and boards"
                     }
                 ]

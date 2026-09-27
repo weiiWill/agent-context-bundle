@@ -157,26 +157,34 @@ invoke_subagent(
 
 当需要对现有的 `.context/` 知识包进行健康检查、死链扫描或时效治理时，子 Agent 按以下步骤执行：
 
-1. **Frontmatter 规范性校验**：
+1. **机械化全盘健康诊断 (`sync_bundle.py --doctor`)**：
+   - 运行 `python3 .context/scripts/sync_bundle.py --doctor`，执行 4 重硬门禁自检：
+     - **顶层骨架白名单**：严禁在 `.context/` 根目录创建非法野目录（如 `eval_analysis/`、`inputs/`、`.pytest_cache/` 等）；
+     - **任务沙盒隔离域**：严禁将特定 Task 的过程性交接快照（`handoff-<task>-*`）、专项评测排查（`investigation-eval*`）泄漏至全局 `docs/`；
+     - **任务生命周期完整性**：检查所有 `tasks/<slug>/` 是否齐全具备 `README.md`（主控）与 `progress.md`（线性推进流水）；
+     - **大文件冷数据审计**：检查是否存在非法的 >5MB 原始 Trace 或日志堆积在索引区；
+   - 若 Doctor 报告违规，立即执行就地修复与目录归位。
+
+2. **Frontmatter 规范性校验**：
    - 扫描 `.context/` 下除 `TODO.md`、`progress.md` 及自动生成文件外的所有 Markdown；
    - 依据 `context-frontmatter.schema.json` 检查必须包含合法 Frontmatter（`type`, `status`, `updated`, `summary`）；
    - 检查 `status` 是否属于标准英文枚举值，发现非标格式直接修复。
 
-2. **链接图谱与断链检测**：
+3. **链接图谱与断链检测**：
    - 扫描所有正文内的 Markdown 相对链接 `[label](relative/path)`；
    - 校验相对路径指向的目标文件是否存在，若发现 404 断链则进行路径修复；
    - 校验 `resources` 中的 `code://` 与 `doc://` 资源路径是否有效。
 
-3. **执行全量索引同步与 Hook 自愈 (Sync & Auto-Healing Hooks)**：
+4. **执行全量索引同步与 Hook 自愈 (Sync & Auto-Healing Hooks)**：
    - 运行 `python3 .context/scripts/sync_bundle.py` 刷新 `manifest.jsonl`、`docs/INDEX.md`、`tasks/STATUS.md` 与 `CLEANUP.md`；
    - 运行 `python3 .context/scripts/install_hooks.py` 巡检原生 Hook 就绪度，若发现缺失（如新接入环境或老项目遗漏），自动完成自愈注入。
 
-4. **时效与停滞治理分析**：
+5. **时效与停滞治理分析**：
    - 统计 ⚠️ 停滞任务（`in_progress` / `active` 且 >14 天未更新）；
    - 统计 🗑️ 清理候选（`completed` / `resolved` / `archived` 且 >30 天未触碰且未 `pinned: true`）；
    - 如有需要归档的任务，经确认后将状态置为 `archived` 并重新同步。
 
-5. **输出结构化巡检报告**：
+6. **输出结构化巡检报告**：
    - 向主 Agent 返回概览：纳管文档总数、任务状态分布、断链修复数量、停滞告警清单。
 
 ---
