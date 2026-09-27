@@ -234,10 +234,10 @@ AI 将自动通过独立的 Sub-agent 执行：
   > 🗣️ *“记一个待办：后续需要给 Makefile 增加压测目标。”*  
   > 🤖 **AI 行为**：向 `TODO.md` 追加 `- [ ] [global] Makefile: 增加压测目标`。0 字节污染索引。
 
-#### 场景 E：定期体检与知识库自愈（Health Audit & Sync）
-- **一键巡检**：
-  > 🗣️ *“巡检并同步一下 .context 知识库。”*  
-  > 🤖 **AI 行为**：全量检查 Frontmatter 格式合规性、修复 404 断链、刷新所有汇总大盘，并汇报 >14 天停滞任务与 >30 天待归档项。
+#### 场景 E：定期体检与知识库自愈（Health Audit & Doctor）
+- **一键全盘健康诊断**：
+  > 🗣️ *“体检并同步一下 .context 知识库。”*  
+  > 🤖 **AI 行为**：运行 `python3 .context/scripts/sync_bundle.py --doctor`，秒级执行 4 重硬门禁诊断（骨架白名单、沙盒隔离域、任务生命周期、冷数据防熔断），输出健康大盘并自动就地修复违规项。
 
 ---
 
@@ -261,7 +261,7 @@ AI 将自动通过独立的 Sub-agent 执行：
         "hooks": [{
           "type": "command",
           "if": "Write(.context/**)",
-          "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; } 2>/dev/null || true",
+          "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; }",
           "statusMessage": "🔄 同步 .context/ 记忆库"
         }]
       },
@@ -270,7 +270,7 @@ AI 将自动通过独立的 Sub-agent 执行：
         "hooks": [{
           "type": "command",
           "if": "Edit(.context/**)",
-          "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; } 2>/dev/null || true",
+          "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; }",
           "statusMessage": "🔄 同步 .context/ 记忆库"
         }]
       }
@@ -286,11 +286,11 @@ AI 将自动通过独立的 Sub-agent 执行：
     "PostToolUse": [
       {
         "matcher": "write_to_file",
-        "hooks": [{ "type": "command", "command": "python3 .context/scripts/sync_bundle.py 2>/dev/null || true" }]
+        "hooks": [{ "type": "command", "command": "python3 .context/scripts/sync_bundle.py" }]
       },
       {
         "matcher": "replace_file_content",
-        "hooks": [{ "type": "command", "command": "python3 .context/scripts/sync_bundle.py 2>/dev/null || true" }]
+        "hooks": [{ "type": "command", "command": "python3 .context/scripts/sync_bundle.py" }]
       }
     ]
   }

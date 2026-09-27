@@ -239,10 +239,10 @@ Once initialized, you don't need to memorize complex commands. Natural language 
   > 🗣️ *"Note down a todo: add local load-test target to Makefile."*  
   > 🤖 **Agent**: Appends `- [ ] [global] Makefile: Add load-test target` to `TODO.md` (zero token indexing overhead).
 
-#### Scenario E: Knowledge Base Health Audit (Self-healing)
-- **Run Routine Audit**:
-  > 🗣️ *"Audit and sync the .context knowledge bundle."*  
-  > 🤖 **Agent**: Scans for broken links, validates schemas, refreshes all boards, and reports stagnant tasks.
+#### Scenario E: Knowledge Base Health Audit & Doctor (Self-healing)
+- **One-Click Comprehensive Diagnostics**:
+  > 🗣️ *"Audit and diagnose the .context knowledge bundle."*  
+  > 🤖 **Agent**: Runs `python3 .context/scripts/sync_bundle.py --doctor` to perform 4-gate mechanical checks (skeleton whitelist, task sandbox isolation, lifecycle integrity, oversized blob guards) and self-heals non-compliant items.
 
 ---
 
@@ -266,7 +266,7 @@ Edit .context/file.md ──► PostToolUse Hook ──► bump_updated.py ─�
         "hooks": [{
           "type": "command",
           "if": "Write(.context/**)",
-          "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; } 2>/dev/null || true",
+          "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; }",
           "statusMessage": "🔄 Syncing .context/ bundle"
         }]
       },
@@ -275,7 +275,7 @@ Edit .context/file.md ──► PostToolUse Hook ──► bump_updated.py ─�
         "hooks": [{
           "type": "command",
           "if": "Edit(.context/**)",
-          "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; } 2>/dev/null || true",
+          "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && python3 .context/scripts/bump_updated.py \"$f\"; python3 .context/scripts/sync_bundle.py; }",
           "statusMessage": "🔄 Syncing .context/ bundle"
         }]
       }
@@ -291,11 +291,11 @@ Edit .context/file.md ──► PostToolUse Hook ──► bump_updated.py ─�
     "PostToolUse": [
       {
         "matcher": "write_to_file",
-        "hooks": [{ "type": "command", "command": "python3 .context/scripts/sync_bundle.py 2>/dev/null || true" }]
+        "hooks": [{ "type": "command", "command": "python3 .context/scripts/sync_bundle.py" }]
       },
       {
         "matcher": "replace_file_content",
-        "hooks": [{ "type": "command", "command": "python3 .context/scripts/sync_bundle.py 2>/dev/null || true" }]
+        "hooks": [{ "type": "command", "command": "python3 .context/scripts/sync_bundle.py" }]
       }
     ]
   }
