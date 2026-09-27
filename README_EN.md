@@ -110,7 +110,7 @@ sync_bundle.py Compilation Engine (<15ms)
 │   └── <task-slug>/
 │       ├── README.md                 # Task controller (Frontmatter with status & code anchors)
 │       ├── progress.md               # Append-only chronological execution log (Auto-split at ~200 lines)
-│       └── (optional) plans/ docs/   # Sub-plans & task-specific design documents
+│       └── (as-needed) inputs/ outputs/ scripts/ plans/ docs/ # 2 core files + 5 orthogonal subdirs (aliases strictly forbidden)
 ├── research/                         # Multi-session evaluations, benchmarks & spike investigations
 └── scripts/
     ├── sync_bundle.py                # Dual-layer index compiler & graph validator (<15ms)
@@ -288,14 +288,17 @@ Edit .context/file.md ──► PostToolUse Hook ──► bump_updated.py ─�
 ```json
 {
   "context-bundle-sync": {
+    "enabled": true,
     "PostToolUse": [
       {
-        "matcher": "write_to_file",
-        "hooks": [{ "type": "command", "command": "python3 .context/scripts/sync_bundle.py" }]
-      },
-      {
-        "matcher": "replace_file_content",
-        "hooks": [{ "type": "command", "command": "python3 .context/scripts/sync_bundle.py" }]
+        "matcher": "write_to_file|replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "(python3 .context/scripts/sync_bundle.py 2>/dev/null || python3 ../.context/scripts/sync_bundle.py) >&2 && echo '{}'",
+            "timeout": 10
+          }
+        ]
       }
     ]
   }

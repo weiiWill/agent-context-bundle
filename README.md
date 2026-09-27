@@ -109,7 +109,7 @@ sync_bundle.py 编译引擎 (<15ms)
 │   └── <task-slug>/
 │       ├── README.md                 # 任务主控 (记录目标、状态与关键决策)
 │       ├── progress.md               # 线性推进流水 (超 200 行自动切卷归档)
-│       └── (选填) plans/ docs/       # 任务名下的子方案
+│       └── (按需) inputs/ outputs/ scripts/ plans/ docs/ # 2 核心文件 + 5 正交子目录 (严禁别名)
 ├── research/                         # 跨任务的技术调研、压测评测与选型分析
 └── scripts/
     ├── sync_bundle.py                # 核心同步引擎：扫描全仓并编译索引 (<15ms)
@@ -237,7 +237,7 @@ AI 将自动通过独立的 Sub-agent 执行：
 #### 场景 E：定期体检与知识库自愈（Health Audit & Doctor）
 - **一键全盘健康诊断**：
   > 🗣️ *“体检并同步一下 .context 知识库。”*  
-  > 🤖 **AI 行为**：运行 `python3 .context/scripts/sync_bundle.py --doctor`，秒级执行 4 重硬门禁诊断（骨架白名单、沙盒隔离域、任务生命周期、冷数据防熔断），输出健康大盘并自动就地修复违规项。
+  > 🤖 **AI 行为**：运行 `python3 .context/scripts/sync_bundle.py --doctor`，秒级执行 5 重硬门禁诊断（顶层骨架白名单、任务子目录白名单、沙盒隔离域、任务生命周期、冷数据防熔断），输出健康大盘并自动就地修复违规项。
 
 ---
 
@@ -283,14 +283,17 @@ AI 将自动通过独立的 Sub-agent 执行：
 ```json
 {
   "context-bundle-sync": {
+    "enabled": true,
     "PostToolUse": [
       {
-        "matcher": "write_to_file",
-        "hooks": [{ "type": "command", "command": "python3 .context/scripts/sync_bundle.py" }]
-      },
-      {
-        "matcher": "replace_file_content",
-        "hooks": [{ "type": "command", "command": "python3 .context/scripts/sync_bundle.py" }]
+        "matcher": "write_to_file|replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "(python3 .context/scripts/sync_bundle.py 2>/dev/null || python3 ../.context/scripts/sync_bundle.py) >&2 && echo '{}'",
+            "timeout": 10
+          }
+        ]
       }
     ]
   }

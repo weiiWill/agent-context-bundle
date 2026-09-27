@@ -40,26 +40,16 @@ def detect_and_inject(project_root: Path | None = None) -> list[str]:
                 "enabled": True,
                 "PostToolUse": [
                     {
-                        "matcher": "write_to_file",
+                        "matcher": "write_to_file|replace_file_content",
                         "hooks": [
                             {
                                 "type": "command",
-                                "command": "python3 .context/scripts/sync_bundle.py",
-                                "timeout": 5
+                                "command": "(python3 .context/scripts/sync_bundle.py 2>/dev/null || python3 ../.context/scripts/sync_bundle.py) >&2 && echo '{}'",
+                                "timeout": 10,
                             }
-                        ]
-                    },
-                    {
-                        "matcher": "replace_file_content",
-                        "hooks": [
-                            {
-                                "type": "command",
-                                "command": "python3 .context/scripts/sync_bundle.py",
-                                "timeout": 5
-                            }
-                        ]
+                        ],
                     }
-                ]
+                ],
             }
         }
 
@@ -143,6 +133,8 @@ def detect_and_inject(project_root: Path | None = None) -> list[str]:
     git_dir = project_root / ".git"
     if git_dir.is_dir():
         install_script = project_root / ".context" / "scripts" / "install_git_hook.sh"
+        if not install_script.exists():
+            install_script = project_root / ".context" / "scripts" / "install-git-hook.sh"
         if install_script.exists():
             try:
                 res = subprocess.run(["bash", str(install_script)], cwd=str(project_root), check=True, capture_output=True, text=True)
