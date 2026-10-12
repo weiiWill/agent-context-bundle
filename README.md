@@ -100,9 +100,9 @@ sync_bundle.py 编译引擎 (<15ms)
 ├── CLEANUP.md                        # [自动编译] 任务超时与待归档清单
 ├── docs/                             # 步骤 3：长期沉淀的核心规范与经验
 │   ├── INDEX.md                      # [自动编译] 自动按类型分类聚合的知识目录
-│   ├── architecture-<slug>.md        # 核心架构设计与重大决策 ADR (不带日期后缀)
-│   ├── playbook-<slug>.md            # 踩坑总结、排障手册与验证流程 (不带日期后缀)
-│   └── handoff-<slug>-<YYYYMMDD>.md  # 阶段交接与工作快照 (带日期后缀)
+│   ├── architecture-<slug>-<YYYYMMDD>.md  # 架构设计。文件名带日期，标题以【主题】开头
+│   ├── playbook-<slug>-<YYYYMMDD>.md      # 排障手册。文件名带日期，标题以【主题】开头
+│   └── handoff-<slug>-<YYYYMMDD>.md       # 阶段交接。文件名带日期，标题以【主题】开头
 ├── tasks/                            # 步骤 2：跨多轮会话推进的复杂任务
 │   ├── REGISTRY.md                   # 任务准入表 (防任务无限膨胀)
 │   ├── STATUS.md                     # [自动编译] 任务状态与逾期告警大盘

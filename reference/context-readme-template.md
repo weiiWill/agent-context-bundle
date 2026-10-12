@@ -29,3 +29,4 @@
 2. **写后必同步闭环**：在 `.context/` 下新增、修改或删除任何文档后，**必须主动执行** `python3 .context/scripts/sync_bundle.py` 重新编译全局索引与看板。
 3. **Task 严格准入**：`tasks/` 下的任务是跨多轮会话的大型专项。**严禁 Agent 未经人类明确批准私自创建 `tasks/<slug>` 目录**。立项须在 `tasks/REGISTRY.md` 登记。
 4. **旁路问题留痕**：执行任务时若发现非阻塞性旁路问题，严禁擅自扩大改动范围，统一追加至 `.context/TODO.md`（带 `[task:<slug>]` 或 `[global]` 标签）。
+5. **日期与主题**：新写的 `docs/`、`research/`、`tasks/*/docs/`、`tasks/*/plans/` 文档，文件名必须以 `-YYYYMMDD` 结尾。Frontmatter 写 `topic`，`title` 和正文第一个标题以 `【主题】` 开头，例如 `【多市场改写】同一套改写接入各市场的搜索`。

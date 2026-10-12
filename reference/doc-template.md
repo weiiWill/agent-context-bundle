@@ -1,17 +1,20 @@
 ---
 type: architecture # architecture | playbook | handoff | investigation | reading-map | report | note
-title: <文档标题>
+topic: <主题>
+title: 【<主题>】<文档标题>
 status: active     # draft | active | completed | archived
 resources:
   - code://src/service/processor.py#L42
-  - doc://.context/docs/architecture-overview.md
+  - doc://.context/docs/architecture-overview-YYYYMMDD.md
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 summary: 一句话精准说明本文档的核心结论、设计决策或排查结果 (用于 manifest.jsonl 与 INDEX.md 索引)
 pinned: false      # true 则豁免 >30 天清理审理
 ---
 
-# <文档标题>
+# 【<主题>】<文档标题>
+
+文件名必须是 `{type}-{slug}-{YYYYMMDD}.md`。`topic` 不含方括号，`title` 和上面这个标题都以 `【主题】` 开头。
 
 ## 1. 背景与上下文 (Context)
 - 简述发起本篇文档的背景、要解决的技术问题或决策诉求。

@@ -21,9 +21,14 @@
         "draft"
       ]
     },
+    "topic": {
+      "type": "string",
+      "description": "Short topic label without brackets. New documents require it, and title must start with 【topic】.",
+      "minLength": 1
+    },
     "title": {
       "type": "string",
-      "description": "Human-readable title for the document.",
+      "description": "Human-readable title. New documents must start with 【topic】.",
       "minLength": 1
     },
     "status": {

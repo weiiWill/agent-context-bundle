@@ -392,9 +392,17 @@ def scan_docs() -> list[dict]:
         )
 
         prefix = stem.split("-")[0] if "-" in stem else ""
-        naming_mismatch = (not rel_path.startswith("tasks/")) and (
+        type_mismatch = (not rel_path.startswith("tasks/")) and (
             prefix in TYPE_LABELS and prefix != doc_type
         )
+        needs_identity = (
+            rel_path.startswith(("docs/", "research/"))
+            or "/docs/" in rel_path
+            or "/plans/" in rel_path
+        ) and Path(rel_path).name not in {"INDEX.md", "STATUS.md", "CLEANUP.md", "AGENTS.md"}
+        missing_date = needs_identity and not re.search(r"-\d{8}$", stem)
+        missing_topic = needs_identity and not re.match(r"^【[^【】]+】", str(title).strip())
+        naming_mismatch = type_mismatch or missing_date or missing_topic
 
         entries.append(
             {
@@ -402,6 +410,7 @@ def scan_docs() -> list[dict]:
                 "kind": "doc",
                 "path": rel_path,
                 "type": doc_type,
+                "topic": str(fm.get("topic") or ""),
                 "title": title,
                 "status": status,
                 "tags": fm.get("tags", []),

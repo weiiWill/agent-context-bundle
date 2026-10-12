@@ -101,9 +101,9 @@ sync_bundle.py Compilation Engine (<15ms)
 ├── CLEANUP.md                        # [Generated Board] Automated cleanup review candidates (>30d inactive)
 ├── docs/                             # Stage 3: Long-term core baseline knowledge
 │   ├── INDEX.md                      # [Generated Board] Auto-categorized documentation catalog
-│   ├── architecture-<slug>.md        # Living architecture designs & ADRs (no date suffix)
-│   ├── playbook-<slug>.md            # Standard debugging & operational runbooks (no date suffix)
-│   └── handoff-<slug>-<YYYYMMDD>.md  # Time-stamped session transitions
+│   ├── architecture-<slug>-<YYYYMMDD>.md  # Architecture. Filename has a date; title starts with 【topic】
+│   ├── playbook-<slug>-<YYYYMMDD>.md      # Runbook. Filename has a date; title starts with 【topic】
+│   └── handoff-<slug>-<YYYYMMDD>.md       # Handoff. Filename has a date; title starts with 【topic】
 ├── tasks/                            # Stage 2: Multi-session complex tasks
 │   ├── REGISTRY.md                   # Strict task admission log (Prevents task explosion)
 │   ├── STATUS.md                     # [Generated Board] Task status, age, & stagnancy alerts
