@@ -1,7 +1,7 @@
 ---
 type: architecture # architecture | playbook | handoff | investigation | reading-map | report | note
-topic: <主题>
-title: 【<主题>】<文档标题>
+topic: 【架构方案】
+title: 【架构方案】<文档标题>
 status: active     # draft | active | completed | archived
 resources:
   - code://src/service/processor.py#L42
@@ -12,9 +12,9 @@ summary: 一句话精准说明本文档的核心结论、设计决策或排查�
 pinned: false      # true 则豁免 >30 天清理审理
 ---
 
-# 【<主题>】<文档标题>
+# 【架构方案】<文档标题>
 
-文件名必须是 `{type}-{slug}-{YYYYMMDD}.md`。`topic` 写文档类型，如架构方案、架构优化、排查记录，不含方括号。`title` 和上面这个标题都以 `【文档类型】` 开头，后面再写具体内容。
+文件名必须是 `{type}-{slug}-{YYYYMMDD}.md`。`topic` 标识符必须带上方括号，写成 `【架构方案】`、`【架构优化】`、`【排查记录】`。`title` 和上面这个标题都以同一个标识符开头，后面再写具体内容。
 
 ## 1. 背景与上下文 (Context)
 - 简述发起本篇文档的背景、要解决的技术问题或决策诉求。

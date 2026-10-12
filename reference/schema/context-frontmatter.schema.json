@@ -23,8 +23,9 @@
     },
     "topic": {
       "type": "string",
-      "description": "Document category without brackets, such as 架构方案 or 排查记录. New documents require it, and title must start with 【topic】.",
-      "minLength": 1
+      "description": "Topic identifier including the brackets, such as 【架构方案】 or 【排查记录】. New documents require this exact form, and title must start with the same identifier.",
+      "pattern": "^【[^【】]+】$",
+      "minLength": 3
     },
     "title": {
       "type": "string",

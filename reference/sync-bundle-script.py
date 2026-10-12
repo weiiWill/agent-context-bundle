@@ -401,7 +401,11 @@ def scan_docs() -> list[dict]:
             or "/plans/" in rel_path
         ) and Path(rel_path).name not in {"INDEX.md", "STATUS.md", "CLEANUP.md", "AGENTS.md"}
         missing_date = needs_identity and not re.search(r"-\d{8}$", stem)
-        missing_topic = needs_identity and not re.match(r"^【[^【】]+】", str(title).strip())
+        topic_id = str(fm.get("topic") or "").strip()
+        missing_topic = needs_identity and (
+            not re.fullmatch(r"【[^【】]+】", topic_id)
+            or not str(title).strip().startswith(topic_id)
+        )
         naming_mismatch = type_mismatch or missing_date or missing_topic
 
         entries.append(

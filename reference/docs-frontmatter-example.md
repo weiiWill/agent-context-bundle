@@ -3,7 +3,7 @@
 ```markdown
 ---
 type: architecture
-topic: 架构方案
+topic: 【架构方案】
 title: 【架构方案】统一认证鉴权网关架构设计
 status: active
 resources:
@@ -26,7 +26,7 @@ pinned: false
 | 字段 | 取值 | 说明 |
 |---|---|---|
 | `type` | `architecture` / `playbook` / `handoff` / `investigation` / `reading-map` / `report` / `llm-io` / `note` / `task` / `draft` | 决定文档性质并在 `docs/INDEX.md` 中分栏展示。 |
-| `topic` | 短中文 | 文档类型，不含方括号。如架构方案、架构优化、排查记录。新写文档必填。 |
+| `topic` | `【文档类型】` | 标识符必须带上方括号，如 `【架构方案】`、`【架构优化】`、`【排查记录】`。新写文档必填。 |
 | `title` | 字符串 | 以 `【文档类型】` 开头，后面写这篇文档具体讲什么。 |
 | `status` | `active` / `draft` / `in_progress` / `paused` / `completed` / `resolved` / `archived` | 当前生命周期状态。统一使用英文枚举。 |
 | `resources` | URI 列表 | 关联的代码位置（如 `code://path/to/file.go#L10`）、外部系统（`issue://`）或其他文档（`doc://...`）。 |

@@ -27,7 +27,7 @@ description: >-
 2. **Frontmatter 强制门禁**：除 `TODO.md`、`progress.md` 以及 `inputs/`、`outputs/` 外，所有文档顶部必须包含合法的 YAML Frontmatter（包含 `type`, `title`, `status`, `created`, `updated`, `summary` 及代码锚点 `resources`）。
 3. **Task 严格准入双通道**：Task 属于跨会话大型专项，严禁随意建立。新建 Task 仅允许两种方式：用户显式要求立项，或 Agent 提议拆分并**获得人工明确确认**。
 4. **拒绝规范倒灌**：工程内部仅保留单一高信噪比的 `.context/AGENTS.md`，严禁在子目录生成冗余的子级 `AGENTS.md`。
-5. **日期与主题标识**：Agent 新写的 `docs/`、`research/`、`tasks/*/docs/`、`tasks/*/plans/` 文档必须同时有日期和主题。文件名是 `{type}-{slug}-{YYYYMMDD}.md`，日期是写成该文档的当天。Frontmatter 写 `topic`（短中文，不含方括号）。`title` 和正文第一个 `#` 标题都以 `【主题】` 开头。例如 `topic: 架构方案`，`title: 【架构方案】同一套改写接入各市场的搜索`。主题写文档类型，如架构方案、架构优化、排查记录，不写具体功能名。任务入口 `README.md`、`progress.md`、`REGISTRY.md` 和 `.context/AGENTS.md` 保持固定文件名，不套用这条文件名规则。
+5. **日期与主题标识**：Agent 新写的 `docs/`、`research/`、`tasks/*/docs/`、`tasks/*/plans/` 文档必须同时有日期和主题。文件名是 `{type}-{slug}-{YYYYMMDD}.md`，日期是写成该文档的当天。Frontmatter 的 `topic` 必须连方括号一起写，标识符本身是 `【架构方案】` 这种，不能写成 `架构方案`。`title` 和正文第一个 `#` 标题都以同一个标识符开头。例如 `topic: 【架构方案】`，`title: 【架构方案】同一套改写接入各市场的搜索`。括号里写文档类型，如架构方案、架构优化、排查记录，不写具体功能名。任务入口 `README.md`、`progress.md`、`REGISTRY.md` 和 `.context/AGENTS.md` 保持固定文件名，不套用这条文件名规则。
 
 ### 2. 标准目录骨架
 ```text
@@ -68,7 +68,7 @@ description: >-
 ```yaml
 ---
 type: architecture | playbook | handoff | investigation | reading-map | report | llm-io | note | task | draft
-topic: 架构方案
+topic: 【架构方案】
 title: 【架构方案】文档或任务名称
 status: active | draft | in_progress | paused | completed | resolved | archived
 resources:
