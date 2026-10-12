@@ -23,7 +23,7 @@
     },
     "topic": {
       "type": "string",
-      "description": "Short topic label without brackets. New documents require it, and title must start with 【topic】.",
+      "description": "Document category without brackets, such as 架构方案 or 排查记录. New documents require it, and title must start with 【topic】.",
       "minLength": 1
     },
     "title": {
