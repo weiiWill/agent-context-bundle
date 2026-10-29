@@ -45,7 +45,7 @@ As AI coding assistants evolve from single-turn autocomplete to autonomous multi
 | **External Vector DB / SaaS** | Proprietary lock-in, complex daemon setup, out-of-band state drift, and invisible to human developers viewing the repository. |
 
 ### The Solution: `Agent Context Bundle`
-A standardized `.context/` workspace governed by an ultra-lightweight compile-time engine (`sync_bundle.py`). It turns local markdown notes into a **queryable, self-healing knowledge graph** that:
+A standardized `.context/` workspace governed by an ultra-lightweight compile-time engine (`sync_bundle.py`). It turns local markdown notes into a **queryable, gate-checked knowledge graph** (doctor reports violations; it does not auto-rewrite files) that:
 1. **Loads in <5ms** with 99% token savings via single-line JSONL streaming (`manifest.jsonl`).
 2. **Never rots** through automated activity tracking, stagnancy alerts, and lifecycle garbage collection.
 3. **Never gets lost** by anchoring directly to exact source code lines (`code://path/to/file.go#L42-L80`).
@@ -73,7 +73,7 @@ sync_bundle.py Compilation Engine (<15ms)
 | Layer | File Artifact | Role | Core Mechanism |
 |---|---|---|---|
 | **Single Source of Truth (SSOT)** | `.context/**/*.md` | Knowledge & State Definition | Frontmatter metadata, vertically anchoring code lines (`code://...#L10`) |
-| **Fast Compilation Engine** | `.context/scripts/sync_bundle.py` | State Synchronization & Indexing | <15ms full scan, topology validation, schema enforcement, zero dependencies |
+| **Fast Compilation Engine** | `.context/scripts/sync_bundle.py` | State Synchronization & Indexing | <15ms full scan, structural whitelist gates & frontmatter extraction; strict link/schema validation is a follow-up, zero dependencies |
 | **Machine Fast Index (AI)** | `.context/manifest.jsonl` | Instant Agent Triage | One JSON line per concept, stream-filterable via Unix pipes, saves 99% tokens |
 | **Human View Layer (Humans)** | `INDEX.md` / `STATUS.md` / `CLEANUP.md` | Developer Overview Boards | 100% auto-derived, real-time views of catalogs, task age, and review queue |
 
@@ -109,11 +109,11 @@ sync_bundle.py Compilation Engine (<15ms)
 │   ├── STATUS.md                     # [Generated Board] Task status, age, & stagnancy alerts
 │   └── <task-slug>/
 │       ├── README.md                 # Task controller (Frontmatter with status & code anchors)
-│       ├── progress.md               # Append-only chronological execution log (Auto-split at ~200 lines)
+│       ├── progress.md               # Append-only chronological execution log (Agent SOP split when long; engine does not auto-split)
 │       └── (as-needed) inputs/ outputs/ scripts/ plans/ docs/ # 2 core files + 5 orthogonal subdirs (aliases strictly forbidden)
 ├── research/                         # Multi-session evaluations, benchmarks & spike investigations
 └── scripts/
-    ├── sync_bundle.py                # Dual-layer index compiler & graph validator (<15ms)
+    ├── sync_bundle.py                # Dual-layer index compiler & --doctor gate reporter (<15ms)
     ├── install_hooks.py              # Framework-aware auto-detection & native hook injector
     ├── bump_updated.py               # Atomic frontmatter 'updated:' date renewer
     └── install_git_hook.sh           # Pre-commit hook installer (Smart gitignore-aware)
@@ -131,7 +131,7 @@ The bundle implements a lifecycle state machine that solves both **context loss*
                               │
                               ▼ (Strict Admission: User command OR Agent proposal with human approval)
 [2. Multi-Session Task] .context/tasks/<task-slug>/
-                        Controller + log separation • Liveness alerts (>14d ⚠️) • Auto-split progress.md
+                        Controller + log separation • Liveness alerts (>14d ⚠️) • Agent SOP progress split (not engine)
                               │
                               ▼ (Task Concluded: Extract baseline architecture & playbooks)
 [3. Core Specification] .context/docs/architecture-*.md / playbook-*.md
@@ -158,7 +158,7 @@ The bundle implements a lifecycle state machine that solves both **context loss*
 - **Controller & Log Separation**:
   - `README.md`: Controller holding frontmatter, goals, code anchors, and key decisions.
   - `progress.md`: Append-only execution log. Editing this file automatically redirects the date bump to `README.md`.
-- **Automatic Log Chunking**: When `progress.md` exceeds ~20-30 entries, historical entries are split into `progress-archive-YYYYMMDD-YYYYMMDD.md` with an inline executive summary.
+- **Log Chunking (Agent SOP / roadmap)**: When `progress.md` exceeds ~20–30 entries (or ~150–200 lines), the **agent** splits history into `progress-archive-YYYYMMDD-YYYYMMDD.md` with an inline executive summary per `task-progress-template`. `sync_bundle.py` does **not** implement automatic splitting.
 
 ### 3. Stage 3: Long-term Core Knowledge (`docs/`)
 - **Baseline Promotion**: When a task concludes, architectural insights and reusable runbooks are promoted to `docs/architecture-<slug>.md` or `docs/playbook-<slug>.md`.
@@ -239,10 +239,10 @@ Once initialized, you don't need to memorize complex commands. Natural language 
   > 🗣️ *"Note down a todo: add local load-test target to Makefile."*  
   > 🤖 **Agent**: Appends `- [ ] [global] Makefile: Add load-test target` to `TODO.md` (zero token indexing overhead).
 
-#### Scenario E: Knowledge Base Health Audit & Doctor (Self-healing)
-- **One-Click Comprehensive Diagnostics**:
+#### Scenario E: Knowledge Base Health Audit & Doctor (Report-only)
+- **One-Click Comprehensive Diagnostics (report-oriented; no in-place auto-repair)**:
   > 🗣️ *"Audit and diagnose the .context knowledge bundle."*  
-  > 🤖 **Agent**: Runs `python3 .context/scripts/sync_bundle.py --doctor` to perform 4-gate mechanical checks (skeleton whitelist, task sandbox isolation, lifecycle integrity, oversized blob guards) and self-heals non-compliant items.
+  > 🤖 **Agent**: Runs `python3 .context/scripts/sync_bundle.py --doctor` to perform **5-gate** mechanical checks (① top-level skeleton whitelist, ② task subdirectory whitelist, ③ sandbox isolation / scope leaks, ④ task lifecycle integrity, ⑤ oversized blob guards), prints a health board, and exits `1` on FAIL. Doctor does **not** rewrite files; the agent remediates from the report, then re-runs doctor.
 
 ---
 
@@ -338,7 +338,9 @@ In a typical repository with 30 architecture docs, 5 active tasks, and 10 resear
 ### Indexing Engine Benchmarks
 - **Scan & Compile Speed**: <15ms for 100 documents on standard developer hardware.
 - **Memory Footprint**: <12MB resident Python process memory.
-- **Fail-Open Design**: Scripts exit with code 0 under non-critical parsing errors to prevent blocking tool invocations.
+- **Real Exit Codes (not “always exit 0”)**:
+  - `sync_bundle.py` (sync): tolerates soft frontmatter parse quirks and still writes boards; exits **`2`** after write when top-level skeleton / task-skeleton / scope-leak gates fail;
+  - `sync_bundle.py --doctor`: **`0`** when all five gates pass; **`1`** on any gate FAIL (diagnostic report only; no file mutations).
 
 ---
 

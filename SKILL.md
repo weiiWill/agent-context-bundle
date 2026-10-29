@@ -2,7 +2,7 @@
 name: agent-context-bundle
 description: >-
   在项目里建立并维护 `.context/` 本地知识包与 Agent 记忆工作区。
-  当需要：(1) 初始化知识库工作区与原生 Hook 门禁 (init)；(2) 全仓健康体检、修复断链与停滞治理 (maintain/doctor)；
+  当需要：(1) 初始化知识库工作区与原生 Hook 门禁 (init)；(2) 全仓健康体检 (doctor 仅报告) 与 Agent 侧断链/停滞治理 (maintain)；
   (3) 规范发起、推进与结项复杂长线任务 (task)；(4) 提炼沉淀架构方案与排障手册 (distill) 时使用。
 ---
 
@@ -23,7 +23,7 @@ description: >-
 ## 核心规则与正交目录结构
 
 ### 1. 核心铁律
-1. **写后必同步闭环 (Write-then-Sync)**：凡在 `.context/` 下新增、修改或删除 Markdown 文档，必须在同一轮会话中调用 `python3 .context/scripts/sync_bundle.py` 刷新看板与索引。外部 Hook 作为人类编辑时的环境兜底。
+1. **写后必同步闭环 (Write-then-Sync)**：凡在 `.context/` 下新增、修改或删除 Markdown 文档，必须在同一轮会话中调用 `python3 .context/scripts/sync_bundle.py` 刷新看板与索引。外部 Hook 作为人类编辑时的环境兜底。常规同步在顶层骨架 / 任务子目录 / 隔离域门禁违规时仍会写看板，并以退出码 **`2`** 退出（不是“恒 exit 0”）；`--doctor` 为报告门禁，FAIL → **`1`**，全过 → **`0`**。
 2. **Frontmatter 强制门禁**：除 `TODO.md`、`progress.md` 以及 `inputs/`、`outputs/` 外，所有文档顶部必须包含合法的 YAML Frontmatter（包含 `type`, `title`, `status`, `created`, `updated`, `summary` 及代码锚点 `resources`）。
 3. **Task 严格准入双通道**：Task 属于跨会话大型专项，严禁随意建立。新建 Task 仅允许两种方式：用户显式要求立项，或 Agent 提议拆分并**获得人工明确确认**。
 4. **拒绝规范倒灌**：工程内部仅保留单一高信噪比的 `.context/AGENTS.md`，严禁在子目录生成冗余的子级 `AGENTS.md`。
@@ -44,7 +44,7 @@ description: >-
 │   ├── STATUS.md                     # [自动生成看板] 任务状态与活跃度监控看板
 │   └── <task-slug>/                  # 【2 核心文件 + 5 正交子目录】
 │       ├── README.md                 # [核心 1] 任务主控、目标与验收标准 (带 Frontmatter)
-│       ├── progress.md               # [核心 2] 纯追加流水日志 (超长自动分卷归档)
+│       ├── progress.md               # [核心 2] 纯追加流水日志 (超长由 Agent 按 SOP 切卷；引擎不自动拆分)
 │       ├── inputs/                   # 测试数据、外部输入、样本样本 (豁免 Frontmatter)
 │       ├── outputs/                  # 评测运行产物、Trace 结果、导出报表 (豁免 Frontmatter)
 │       ├── scripts/                  # 该任务特化评测、批量跑批、提取脚本
@@ -116,14 +116,14 @@ pinned: false                         # 设为 true 可永久豁免定期归档�
 ### Workflow B: `maintain` 工作流 (在现有项目中巡检与时效治理)
 
 1. **机械化全盘健康诊断 (`sync_bundle.py --doctor`)**：
-   - 运行 `python3 .context/scripts/sync_bundle.py --doctor`，执行 5 重硬门禁自检：
+   - 运行 `python3 .context/scripts/sync_bundle.py --doctor`，执行 5 重硬门禁**报告**（Doctor **不**就地改文件；FAIL 时退出码 **`1`**，全过为 **`0`**）：
      - **[1/5] 顶层骨架白名单**：拦截非法顶层目录与散落文件；
      - **[2/5] 任务子目录白名单**：严格锁定 `inputs`, `outputs`, `scripts`, `plans`, `docs`，拦截非法别名；
      - **[3/5] 任务沙盒隔离域**：全词边界匹配拦截泄漏至全局 `docs/` 的任务特化文档；
      - **[4/5] 任务生命周期完整性**：检查所有任务是否具备非空的 `README.md`（带 Frontmatter）与 `progress.md`；
      - **[5/5] 大文件冷数据审计**：跨平台审计并拦截 >5MB 的未纳管大文件；
-   - 若 Doctor 报告 FAIL，立即就地定位并执行结构规整。
-2. **图谱断链检测与修复**：检查 `manifest.jsonl` 中的 `links` 与 `resources`，修复 404 断链；
+   - 若 Doctor 报告 FAIL，**由 Agent** 按报告定位并手工结构规整后复检（引擎无自愈/就地修复）。
+2. **图谱断链巡检（Agent SOP；引擎未做严格断链门禁）**：检查 `manifest.jsonl` 中的 `links` 与 `resources`，人工/Agent 修复 404；`sync_bundle.py` 目前只抽取链接写入索引，不验证可达性。
 3. **时效与停滞治理**：
    - 检查 🚨 停滞任务（活跃且 >14 天未更新）与 ⏸️ 僵尸暂停任务（`paused` 且 >30 天未更新）；
    - 整理 `CLEANUP.md` 待清理候选池（>30 天完成/超期暂停任务），经用户确认后归档为 `archived`；
@@ -140,7 +140,7 @@ pinned: false                         # 设为 true 可永久豁免定期归档�
    - 用户显式指令或提议获人工确认后，在 `tasks/<slug>/` 下同时创建 `README.md` 与 `progress.md`，并在 `tasks/REGISTRY.md` 中登记；
 2. **推进打卡 (Task Progress)**：
    - 向 `tasks/<slug>/progress.md` 追加流水；更新同级 `README.md` 的 `updated:` 字段；
-   - 当 `progress.md` 累积超过 200 行时，自动切出 `progress-archive-*.md`；
+   - 当 `progress.md` 约超过 150–200 行（或约 20–30 条）时，**Agent 按 `reference/task-progress-template.md` SOP 切卷**为 `progress-archive-*.md`（引擎**未实现**自动拆分；属 Agent SOP / 路线图）；
 3. **结项闭环 (Task Conclusion Gate)**：
    - **待办闭环**：执行 `grep 'task:<slug>' .context/TODO.md`，清理未竟待办；
    - **沉淀提请**：Agent 主动分析核心成果，向开发者提请将高价值经验提炼至 `docs/`；
