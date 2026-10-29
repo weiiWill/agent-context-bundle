@@ -74,7 +74,7 @@ sync_bundle.py 编译引擎 (<15ms)
 | 架构层级 | 文件载体 | 核心角色 | 关键机制 |
 |---|---|---|---|
 | **唯一事实源 (SSOT)** | `.context/**/*.md` | 知识与状态定义 | 文档头部 YAML 元数据，垂直绑定源码物理行号 (`code://...#L10`) |
-| **极速编译引擎** | `.context/scripts/sync_bundle.py` | 状态同步与索引构建 | <15ms 全量扫描，校验图谱断链与 Schema，零外部依赖 |
+| **极速编译引擎** | `.context/scripts/sync_bundle.py` | 状态同步与索引构建 | <15ms 全量扫描，结构白名单门禁与 Frontmatter 抽取；断链/Schema 严格校验为后续能力，零外部依赖 |
 | **机器索引层 (AI)** | `.context/manifest.jsonl` | AI 极速按需检索 | 每篇文档仅占一行 JSON，支持 Unix 管道秒级过滤，节省 99% 上下文 |
 | **人类视图层 (Human)** | `INDEX.md` / `STATUS.md` / `CLEANUP.md` | 开发者只读大盘 | 100% 自动派生生成，直观展示分类目录、任务活跃度与超期待归档池 |
 
@@ -109,7 +109,7 @@ sync_bundle.py 编译引擎 (<15ms)
 │   ├── STATUS.md                     # [自动编译] 任务状态与逾期告警大盘
 │   └── <task-slug>/
 │       ├── README.md                 # 任务主控 (记录目标、状态与关键决策)
-│       ├── progress.md               # 线性推进流水 (超 200 行自动切卷归档)
+│       ├── progress.md               # 线性推进流水 (超长时由 Agent 按 SOP 切卷；引擎不自动拆分)
 │       └── (按需) inputs/ outputs/ scripts/ plans/ docs/ # 2 核心文件 + 5 正交子目录 (严禁别名)
 ├── research/                         # 跨任务的技术调研、压测评测与选型分析
 └── scripts/
@@ -157,7 +157,7 @@ sync_bundle.py 编译引擎 (<15ms)
 - **主控与流水日志分离**：
   - `README.md`：核心大纲与状态（包含 Frontmatter 元数据）；
   - `progress.md`：流水账。修改它时，后台 Hook 会自动把修改时间算到 `README.md` 头上；
-- **流水日志超长自动分卷**：当推进日志达到约 200 行时，自动切分出 `progress-archive-*.md`，当前文件保留精炼摘要。
+- **流水日志超长分卷（Agent SOP / 路线图）**：当推进日志约达 150–200 行（或约 20–30 条）时，**由 Agent 按 `task-progress-template` 手工切卷**为 `progress-archive-*.md` 并保留摘要。`sync_bundle.py` **尚未实现**自动拆分引擎行为。
 
 ### 3. 第 3 步：沉淀为核心规范与手册（`docs/`）
 - **经验升格**：任务完成结项时，把沉淀下来的设计与排障套路提炼为 `docs/` 下的规范。
@@ -237,10 +237,10 @@ AI 将自动通过独立的 Sub-agent 执行：
   > 🗣️ *“记一个待办：后续需要给 Makefile 增加压测目标。”*  
   > 🤖 **AI 行为**：向 `TODO.md` 追加 `- [ ] [global] Makefile: 增加压测目标`。0 字节污染索引。
 
-#### 场景 E：定期体检与知识库自愈（Health Audit & Doctor）
-- **一键全盘健康诊断**：
+#### 场景 E：定期体检与门禁诊断（Health Audit & Doctor）
+- **一键全盘健康诊断（报告导向，不就地自愈）**：
   > 🗣️ *“体检并同步一下 .context 知识库。”*  
-  > 🤖 **AI 行为**：运行 `python3 .context/scripts/sync_bundle.py --doctor`，秒级执行 5 重硬门禁诊断（顶层骨架白名单、任务子目录白名单、沙盒隔离域、任务生命周期、冷数据防熔断），输出健康大盘并自动就地修复违规项。
+  > 🤖 **AI 行为**：运行 `python3 .context/scripts/sync_bundle.py --doctor`，秒级执行 **5 重**硬门禁诊断（① 顶层骨架白名单、② 任务子目录白名单、③ 沙盒隔离域、④ 任务生命周期、⑤ 冷数据防熔断），输出健康大盘。Doctor **只报告**违规项并以退出码 `1` 失败；**不会**自动就地改文件。结构规整由 Agent 按报告手工完成后再复检。
 
 ---
 
@@ -335,7 +335,9 @@ AI 将自动通过独立的 Sub-agent 执行：
 ### 脚本执行性能
 - **全量扫描与编译速度**：扫描 100 篇文档耗时 **< 15ms**；
 - **内存占用**：Python 执行期常驻内存 **< 12MB**；
-- **防中断容灾设计（Fail-Open）**：即使遇到个别语法错误，脚本恒返回退出码 0，绝不阻断 AI 正常开发。
+- **真实退出码（非“恒 exit 0”）**：
+  - `sync_bundle.py`（常规同步）：Frontmatter 解析容错继续写看板；若顶层骨架 / 任务子目录 / 隔离域门禁违规，写完后以退出码 **`2`** 退出；
+  - `sync_bundle.py --doctor`：五门禁全过 → **`0`**；任一门禁 FAIL → **`1`**（仅诊断报告，不改文件）。
 
 ---
 
