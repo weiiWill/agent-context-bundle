@@ -21,11 +21,13 @@ def detect_and_inject(project_root: Path | None = None) -> list[str]:
 
     injected: list[str] = []
 
-    # 1. 检测 Antigravity 环境
+    # 1. Detect Antigravity (least-surprising signals only).
+    # Do NOT treat bare root AGENTS.md as Antigravity — Cursor/Codex projects often
+    # have AGENTS.md alone; injecting .agents/hooks.json there is a false positive.
+    # Also skip ~/.gemini alone (Gemini CLI users on Cursor). Require project-local
+    # `.agents/` or explicit ANTIGRAVITY / GEMINI_CLI runtime env.
     is_antigravity = (
         (project_root / ".agents").is_dir()
-        or (project_root / "AGENTS.md").exists()
-        or Path.home().joinpath(".gemini").is_dir()
         or "GEMINI_CLI" in os.environ
         or "ANTIGRAVITY" in os.environ
     )
