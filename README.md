@@ -11,6 +11,7 @@
 </p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/weiiWill/agent-context-bundle/actions/workflows/ci.yml/badge.svg)](https://github.com/weiiWill/agent-context-bundle/actions/workflows/ci.yml)
 [![格式: 纯 Markdown + YAML](https://img.shields.io/badge/Format-Markdown%20%2B%20YAML-success.svg)](#-核心架构设计)
 [![检索延迟: <5ms](https://img.shields.io/badge/Query%20Speed-%3C5ms-orange.svg)](#-token-预算与性能实测)
 [![支持智能体: Claude Code | Cursor | Antigravity | Codex](https://img.shields.io/badge/Agents-Claude%20Code%20%7C%20Cursor%20%7C%20AGY-purple.svg)](#-全自动守护不再手动维护)
@@ -192,6 +193,8 @@ git clone https://github.com/weiiWill/agent-context-bundle.git ~/.claude/skills/
 ```bash
 ln -s /path/to/agent-context-bundle ~/.claude/skills/agent-context-bundle
 ```
+
+`doctor` / `sync` 行为由 `tests/` 下的 fixture 用例覆盖（GitHub Actions 在 PR / `main` push 上跑：`pip install -r requirements-dev.txt && pytest -q`）。
 
 ### 2. 在项目中初始化
 在项目终端中对 AI 说：

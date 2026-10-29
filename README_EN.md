@@ -11,6 +11,7 @@
 </p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/weiiWill/agent-context-bundle/actions/workflows/ci.yml/badge.svg)](https://github.com/weiiWill/agent-context-bundle/actions/workflows/ci.yml)
 [![Format: Pure Markdown + YAML](https://img.shields.io/badge/Format-Markdown%20%2B%20YAML-success.svg)](#-core-architecture)
 [![Query Speed: <5ms](https://img.shields.io/badge/Query%20Speed-%3C5ms-orange.svg)](#-token-budget--performance)
 [![Multi-Agent: Claude Code | Cursor | Antigravity | Codex](https://img.shields.io/badge/Agents-Claude%20Code%20%7C%20Cursor%20%7C%20AGY-purple.svg)](#-multi-agent--hook-matrix)
@@ -195,6 +196,8 @@ git clone https://github.com/weiiWill/agent-context-bundle.git ~/.claude/skills/
 ```bash
 ln -s /path/to/agent-context-bundle ~/.claude/skills/agent-context-bundle
 ```
+
+Doctor/sync behavior is covered by fixture tests under `tests/` (GitHub Actions on PR/push to `main`: `pip install -r requirements-dev.txt && pytest -q`).
 
 ### 2. Initializing in a Project
 Prompt your agent in any workspace:
