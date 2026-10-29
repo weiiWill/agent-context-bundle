@@ -21,7 +21,7 @@ summary: 一句话说明该任务要解决什么问题、产出什么
 ## 2. 任务内部沙盒结构规范 (Sandboxing Anatomy)
 本任务目录严格遵循 **2 核心文件 + 5 正交子目录** 结构，严禁创建任何别名目录：
 - `README.md`：任务主控与大纲（本文件，带 Frontmatter）
-- `progress.md`：线性推进流水日志（立项即创建，纯追加流水；超长时由 Agent 按 `task-progress-template` SOP 切卷，引擎不自动拆分）
+- `progress.md`：线性推进流水日志（立项即创建，纯追加流水；超过约 200 行或约 25 条时由 `sync_bundle.py` 自动切出 `progress-archive-*`，亦可按 `task-progress-template` 提前手工切卷）
 - `inputs/`：测试数据集、外部原始输入、样本数据（豁免 Frontmatter）
 - `outputs/`：评测运行产物、Trace 结果、中间导出产物（豁免 Frontmatter）
 - `scripts/`：该任务特化评测、批量跑批、提取数据的专有脚本

@@ -2,7 +2,7 @@
 name: agent-context-bundle
 description: >-
   在项目里建立并维护 `.context/` 本地知识包与 Agent 记忆工作区。
-  当需要：(1) 初始化知识库工作区与原生 Hook 门禁 (init)；(2) 全仓健康体检 (doctor 仅报告) 与 Agent 侧断链/停滞治理 (maintain)；
+  当需要：(1) 初始化知识库工作区与原生 Hook 门禁 (init)；(2) 全仓健康体检与断链门禁 (doctor 仅报告) 及停滞治理 (maintain)；
   (3) 规范发起、推进与结项复杂长线任务 (task)；(4) 提炼沉淀架构方案与排障手册 (distill) 时使用。
 ---
 
@@ -44,7 +44,7 @@ description: >-
 │   ├── STATUS.md                     # [自动生成看板] 任务状态与活跃度监控看板
 │   └── <task-slug>/                  # 【2 核心文件 + 5 正交子目录】
 │       ├── README.md                 # [核心 1] 任务主控、目标与验收标准 (带 Frontmatter)
-│       ├── progress.md               # [核心 2] 纯追加流水日志 (超长由 Agent 按 SOP 切卷；引擎不自动拆分)
+│       ├── progress.md               # [核心 2] 纯追加流水日志 (超阈值时 sync 自动切 progress-archive-*)
 │       ├── inputs/                   # 测试数据、外部输入、样本样本 (豁免 Frontmatter)
 │       ├── outputs/                  # 评测运行产物、Trace 结果、导出报表 (豁免 Frontmatter)
 │       ├── scripts/                  # 该任务特化评测、批量跑批、提取脚本
@@ -104,7 +104,7 @@ pinned: false                         # 设为 true 可永久豁免定期归档�
    - 基于 `reference/tasks-registry-template.md` 创建 `.context/tasks/REGISTRY.md`。
 5. **框架感知与 Hook 原生注入**：
    - 运行 `python3 .context/scripts/install_hooks.py`；
-   - **Google Antigravity**：写入 `.agents/hooks.json`，在 `PostToolUse` 中绑定正则 matcher 并严格遵守 stdout `{}` 契约；
+   - **Google Antigravity**：仅当项目已有 `.agents/` 或环境含 `ANTIGRAVITY`/`GEMINI_CLI` 时写入 `.agents/hooks.json`（裸根目录 `AGENTS.md` **不会**触发）；`PostToolUse` 绑定正则 matcher 并严格遵守 stdout `{}` 契约；
    - **Claude Code**：写入 `.claude/settings.local.json`，在 `PostToolUse` 中绑定 `Write(.context/**)`；
    - **Git 门禁**：在 Git 纳管模式下注入 `.git/hooks/pre-commit`，绑定 `--doctor` 体检。
 6. **首次全量同步**：
@@ -116,21 +116,21 @@ pinned: false                         # 设为 true 可永久豁免定期归档�
 ### Workflow B: `maintain` 工作流 (在现有项目中巡检与时效治理)
 
 1. **机械化全盘健康诊断 (`sync_bundle.py --doctor`)**：
-   - 运行 `python3 .context/scripts/sync_bundle.py --doctor`，执行 5 重硬门禁**报告**（Doctor **不**就地改文件；FAIL 时退出码 **`1`**，全过为 **`0`**）：
-     - **[1/5] 顶层骨架白名单**：拦截非法顶层目录与散落文件；
-     - **[2/5] 任务子目录白名单**：严格锁定 `inputs`, `outputs`, `scripts`, `plans`, `docs`，拦截非法别名；
-     - **[3/5] 任务沙盒隔离域**：全词边界匹配拦截泄漏至全局 `docs/` 的任务特化文档；
-     - **[4/5] 任务生命周期完整性**：检查所有任务是否具备非空的 `README.md`（带 Frontmatter）与 `progress.md`；
-     - **[5/5] 大文件冷数据审计**：跨平台审计并拦截 >5MB 的未纳管大文件；
+   - 运行 `python3 .context/scripts/sync_bundle.py --doctor`，执行 **6** 重硬门禁**报告**（Doctor **不**就地改文件；FAIL 时退出码 **`1`**，全过为 **`0`**）：
+     - **[1/6] 顶层骨架白名单**：拦截非法顶层目录与散落文件；
+     - **[2/6] 任务子目录白名单**：严格锁定 `inputs`, `outputs`, `scripts`, `plans`, `docs`，拦截非法别名；
+     - **[3/6] 任务沙盒隔离域**：全词边界匹配拦截泄漏至全局 `docs/` 的任务特化文档；
+     - **[4/6] 任务生命周期完整性**：检查所有任务是否具备非空的 `README.md`（带 Frontmatter）与 `progress.md`；
+     - **[5/6] 大文件冷数据审计**：跨平台审计并拦截 >5MB 的未纳管大文件；
+     - **[6/6] 图谱断链审计（fail-closed）**：校验 `.context` 内相对 Markdown 链接与 `code://`（相对项目根）目标存在；忽略 http(s)/mailto/锚点。断链 → 该门 FAIL → doctor 退出 `1`；
    - 若 Doctor 报告 FAIL，**由 Agent** 按报告定位并手工结构规整后复检（引擎无自愈/就地修复）。
-2. **图谱断链巡检（Agent SOP；引擎未做严格断链门禁）**：检查 `manifest.jsonl` 中的 `links` 与 `resources`，人工/Agent 修复 404；`sync_bundle.py` 目前只抽取链接写入索引，不验证可达性。
-3. **时效与停滞治理**：
+2. **时效与停滞治理**：
    - 检查 🚨 停滞任务（活跃且 >14 天未更新）与 ⏸️ 僵尸暂停任务（`paused` 且 >30 天未更新）；
    - 整理 `CLEANUP.md` 待清理候选池（>30 天完成/超期暂停任务），经用户确认后归档为 `archived`；
-4. **补齐 Agent 指引**：若项目里的 `.context/AGENTS.md` 还没有「日期与主题」这条，按 `reference/context-readme-template.md` 补上这一条，不要整文件覆盖项目里已有的其他红线。根目录 `AGENTS.md` 的文档维护段用一句话指向它。
-5. **Hook 自愈与全量刷新**：
-   - 运行 `python3 .context/scripts/install_hooks.py` 自愈缺失的 Hook；
-   - 运行 `python3 .context/scripts/sync_bundle.py` 完成看板刷新。
+3. **补齐 Agent 指引**：若项目里的 `.context/AGENTS.md` 还没有「日期与主题」这条，按 `reference/context-readme-template.md` 补上这一条，不要整文件覆盖项目里已有的其他红线。根目录 `AGENTS.md` 的文档维护段用一句话指向它。
+4. **Hook 自愈与全量刷新**：
+   - 运行 `python3 .context/scripts/install_hooks.py` 自愈缺失的 Hook（Antigravity：仅当存在 `.agents/` 或 `ANTIGRAVITY`/`GEMINI_CLI` 环境变量时注入；裸 `AGENTS.md` 不算）；
+   - 运行 `python3 .context/scripts/sync_bundle.py` 完成看板刷新（顺带触发 progress 自动分卷）。
 
 ---
 
@@ -140,7 +140,7 @@ pinned: false                         # 设为 true 可永久豁免定期归档�
    - 用户显式指令或提议获人工确认后，在 `tasks/<slug>/` 下同时创建 `README.md` 与 `progress.md`，并在 `tasks/REGISTRY.md` 中登记；
 2. **推进打卡 (Task Progress)**：
    - 向 `tasks/<slug>/progress.md` 追加流水；更新同级 `README.md` 的 `updated:` 字段；
-   - 当 `progress.md` 约超过 150–200 行（或约 20–30 条）时，**Agent 按 `reference/task-progress-template.md` SOP 切卷**为 `progress-archive-*.md`（引擎**未实现**自动拆分；属 Agent SOP / 路线图）；
+   - 当 `progress.md` 超过约 **200 行**或约 **25** 条 `- YYYY-MM-DD:` 条目时，下一次 `sync_bundle.py` 会自动写出 `progress-archive-*.md`、更新 `## Archive Summary`，并保留最近约 **10** 条在活文件（阈值见引擎常量；也可仍按 `task-progress-template` 提前手工切卷）；
 3. **结项闭环 (Task Conclusion Gate)**：
    - **待办闭环**：执行 `grep 'task:<slug>' .context/TODO.md`，清理未竟待办；
    - **沉淀提请**：Agent 主动分析核心成果，向开发者提请将高价值经验提炼至 `docs/`；

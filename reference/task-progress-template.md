@@ -16,7 +16,9 @@
 
 ## When and how to split this file
 
-Once this file passes **~20-30 entries or ~150-200 lines**, split it — don't wait until it's ballooned to several hundred lines, and don't just truncate/delete old entries (that violates the archive-over-delete principle).
+Once this file passes **~20–30 entries or ~150–200 lines**, it should be split — don't wait until it's ballooned to several hundred lines, and don't just truncate/delete old entries (that violates the archive-over-delete principle).
+
+**Engine behavior:** `sync_bundle.py` auto-splits when the live file exceeds **200 lines** or **25** dated `- YYYY-MM-DD:` entries, keeps the newest **10** entries, writes `progress-archive-YYYYMMDD-YYYYMMDD.md`, and appends an `## Archive Summary` bullet. Agents may still split earlier using the manual steps below.
 
 1. **Pick a cut point.** Keep the most recent ~8-10 entries live in `## Log`. Never split an entry in half.
 2. **Move the older entries out, verbatim.** Create a sibling file `progress-archive-{first-archived-entry-date}-{last-archived-entry-date}.md` (dates as `YYYYMMDD`, no internal dashes, taken from the entries it contains — not today's date). Give it this header, then paste the archived entries below it in their original order, unedited:
@@ -35,4 +37,4 @@ Once this file passes **~20-30 entries or ~150-200 lines**, split it — don't w
 
 ## Maintenance note
 
-Editing this file bumps the sibling `README.md`'s `updated` field, not this file's own frontmatter (it has none). After creating or editing an archive chunk, no `sync_bundle.py` rerun is needed — archive files are outside its scan scope, same as `progress.md`.
+Editing this file bumps the sibling `README.md`'s `updated` field, not this file's own frontmatter (it has none). Archive files are outside the docs/task index scan scope (same as `progress.md`); running `sync_bundle.py` after edits is still fine and is what triggers engine auto-split when thresholds are crossed.

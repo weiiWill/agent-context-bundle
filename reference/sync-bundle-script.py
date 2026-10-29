@@ -7,10 +7,11 @@
 - 自动生成看板: docs/INDEX.md、tasks/STATUS.md、CLEANUP.md (由脚本自动渲染，请勿手动编辑)
 - 任务活跃度与时效治理: >14 天未更新停滞报警，>30 天完成/暂停任务超期归档审理
 - 任务沙盒封闭: 2 核心文件 (README.md, progress.md) + 5 正交子目录 (inputs, outputs, scripts, plans, docs)
-- 机械化硬拦截门禁: 顶层骨架白名单、任务子目录规范白名单、任务资产跨域泄漏侦测、大文件防熔断与 --doctor 健康体检
+- progress.md 超阈值自动分卷: >200 行或 >25 条带日期条目时写出 progress-archive-* 并保留最近 ~10 条
+- 机械化硬拦截门禁 (--doctor 6 门): 顶层骨架、任务子目录、隔离域、生命周期、大文件、相对/code:// 断链
 
 用法:
-  python3 scripts/sync_bundle.py           # 常规同步 (更新看板与 manifest.jsonl)
+  python3 scripts/sync_bundle.py           # 常规同步 (progress 分卷 + 更新看板与 manifest.jsonl)
   python3 scripts/sync_bundle.py --doctor  # 全仓健康巡检 (返回退出码 0/1 与详细诊断报告)
 """
 import json
@@ -24,13 +25,21 @@ STAGNANT_DAYS = 14
 CLEANUP_REVIEW_DAYS = 30
 MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5MB 限制
 
+# progress.md auto-split thresholds (match task-progress-template / README claims)
+PROGRESS_SPLIT_MAX_LINES = 200
+PROGRESS_SPLIT_MAX_ENTRIES = 25  # mid of documented ~20–30 dated entries
+PROGRESS_KEEP_LIVE_ENTRIES = 10
+
 BUNDLE_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BUNDLE_ROOT.parent
 DOCS_DIR = BUNDLE_ROOT / "docs"
 RESEARCH_DIR = BUNDLE_ROOT / "research"
 TASKS_DIR = BUNDLE_ROOT / "tasks"
 
 FRONTMATTER_RE = re.compile(r"^---\s*\r?\n(.*?)\r?\n---", re.DOTALL)
 MD_LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+CODE_URI_RE = re.compile(r"code://([^\s\]\"'<>]+)")
+PROGRESS_ENTRY_RE = re.compile(r"^- (\d{4}-\d{2}-\d{2}):(.*)$")
 
 # 统一状态枚举
 DONE_STATUSES = {"completed", "resolved", "archived"}
@@ -162,6 +171,278 @@ def extract_links(text: str) -> list[str]:
         if url_clean and url_clean not in links:
             links.append(url_clean)
     return links
+
+
+def _strip_link_target(raw: str) -> str:
+    """Normalize a link/URI target: drop surrounding <>, optional title, and #fragment."""
+    target = raw.strip()
+    if target.startswith("<") and ">" in target:
+        target = target[1 : target.index(">")]
+    # Markdown optional title: path "title" / path 'title'
+    if " " in target and (target.endswith('"') or target.endswith("'")):
+        target = target.rsplit(" ", 1)[0].strip()
+    target = target.split("#")[0].strip()
+    return target
+
+
+def _resolve_code_uri(uri_path: str) -> Path:
+    """code:// paths are project-root relative (parent of .context/)."""
+    rel = _strip_link_target(uri_path)
+    if rel.startswith("/"):
+        rel = rel.lstrip("/")
+    return (PROJECT_ROOT / rel).resolve()
+
+
+def validate_strict_links() -> list[str]:
+    """Fail-closed: relative markdown + code:// targets must resolve; ignore http(s)."""
+    violations: list[str] = []
+    if not BUNDLE_ROOT.exists():
+        return violations
+
+    skip_names = {"INDEX.md", "STATUS.md", "CLEANUP.md"}
+    for md in sorted(BUNDLE_ROOT.rglob("*.md")):
+        if any(part.startswith(".") for part in md.relative_to(BUNDLE_ROOT).parts[:-1]):
+            continue
+        if md.name in skip_names:
+            continue
+        try:
+            text = md.read_text(encoding="utf-8")
+        except OSError:
+            continue
+
+        rel_file = str(md.relative_to(BUNDLE_ROOT))
+
+        for _, url in MD_LINK_RE.findall(text):
+            url_clean = url.strip()
+            if url_clean.startswith(
+                ("http://", "https://", "#", "mailto:", "data:", "blob:", "file:")
+            ):
+                continue
+            if url_clean.startswith("code://"):
+                continue  # handled by CODE_URI_RE below (covers md links + resources)
+            path_part = _strip_link_target(url_clean)
+            if not path_part or path_part.startswith(("http://", "https://")):
+                continue
+            if path_part.startswith("/"):
+                candidate = Path(path_part)
+            else:
+                candidate = (md.parent / path_part).resolve()
+            if not candidate.exists():
+                violations.append(f"断链 markdown ({rel_file}): '{path_part}' 目标不存在")
+
+        for m in CODE_URI_RE.finditer(text):
+            raw = m.group(1)
+            target = _resolve_code_uri(raw)
+            if not target.exists():
+                display = f"code://{_strip_link_target(raw)}"
+                try:
+                    miss = target.relative_to(PROJECT_ROOT.resolve())
+                except ValueError:
+                    miss = target
+                violations.append(f"断链 code:// ({rel_file}): '{display}' → 缺失 {miss}")
+
+    # Deduplicate while preserving order
+    seen: set[str] = set()
+    unique: list[str] = []
+    for v in violations:
+        if v not in seen:
+            seen.add(v)
+            unique.append(v)
+    return unique
+
+
+def _parse_progress_entries(text: str) -> tuple[str, list[tuple[str, str]], str]:
+    """Split progress.md into (preamble_through_log_header, dated entries, trailing).
+
+    Each entry is (date_yyyy_mm_dd, full_entry_text including continuation lines until next entry).
+    HTML comments, horizontal rules, and later ## sections become trailing (not archived/kept).
+    """
+    lines = text.splitlines(keepends=True)
+    if not lines:
+        return "", [], ""
+
+    log_idx = None
+    for i, line in enumerate(lines):
+        if line.strip() == "## Log":
+            log_idx = i
+            break
+
+    if log_idx is None:
+        preamble = ""
+        body_lines = lines
+    else:
+        preamble = "".join(lines[: log_idx + 1])
+        body_lines = lines[log_idx + 1 :]
+
+    entries: list[tuple[str, str]] = []
+    current_date: str | None = None
+    current_buf: list[str] = []
+    trailing_lines: list[str] = []
+    in_trailing = False
+
+    def _close_entry() -> None:
+        nonlocal current_date, current_buf
+        if current_date is not None:
+            entries.append((current_date, "".join(current_buf)))
+            current_date = None
+            current_buf = []
+
+    for line in body_lines:
+        if in_trailing:
+            trailing_lines.append(line)
+            continue
+        m = PROGRESS_ENTRY_RE.match(line.rstrip("\n"))
+        if m:
+            _close_entry()
+            current_date = m.group(1)
+            current_buf = [line if line.endswith("\n") else line + "\n"]
+            continue
+
+        stripped = line.strip()
+        if current_date is not None:
+            if (
+                stripped.startswith("## ")
+                or stripped.startswith("---")
+                or stripped.startswith("<!--")
+            ):
+                _close_entry()
+                in_trailing = True
+                trailing_lines.append(line)
+            else:
+                current_buf.append(line if line.endswith("\n") else line + "\n")
+        else:
+            if not entries:
+                preamble += line
+            else:
+                in_trailing = True
+                trailing_lines.append(line)
+
+    _close_entry()
+    return preamble, entries, "".join(trailing_lines)
+
+
+def _ensure_archive_summary_section(preamble: str) -> str:
+    """Ensure ## Archive Summary exists before ## Log in the live progress preamble."""
+    if re.search(r"^##\s+Archive Summary\s*$", preamble, re.MULTILINE):
+        return preamble
+    # Insert Archive Summary before ## Log
+    if re.search(r"^##\s+Log\s*$", preamble, re.MULTILINE):
+        return re.sub(
+            r"^##\s+Log\s*$",
+            "## Archive Summary\n\n## Log",
+            preamble,
+            count=1,
+            flags=re.MULTILINE,
+        )
+    # No ## Log in preamble — append both
+    return preamble.rstrip() + "\n\n## Archive Summary\n\n## Log\n"
+
+
+def _append_archive_summary_bullet(preamble: str, bullet: str) -> str:
+    """Append one archive summary bullet under ## Archive Summary (before ## Log)."""
+    preamble = _ensure_archive_summary_section(preamble)
+    m = re.search(r"^##\s+Archive Summary\s*$", preamble, re.MULTILINE)
+    if not m:
+        return preamble
+    # Find ## Log after Archive Summary
+    log_m = re.search(r"^##\s+Log\s*$", preamble[m.end() :], re.MULTILINE)
+    if log_m:
+        insert_at = m.end() + log_m.start()
+        before = preamble[:insert_at].rstrip() + "\n"
+        after = preamble[insert_at:]
+        return before + "\n" + bullet + "\n\n" + after.lstrip("\n")
+    return preamble.rstrip() + "\n" + bullet + "\n"
+
+
+def maybe_split_progress_logs() -> list[str]:
+    """When progress.md exceeds line/entry thresholds, archive older entries.
+
+    Thresholds: > PROGRESS_SPLIT_MAX_LINES lines OR > PROGRESS_SPLIT_MAX_ENTRIES
+    dated `- YYYY-MM-DD:` entries. Keeps the newest PROGRESS_KEEP_LIVE_ENTRIES live.
+    """
+    actions: list[str] = []
+    if not TASKS_DIR.exists():
+        return actions
+
+    for task_dir in sorted(TASKS_DIR.iterdir()):
+        if not task_dir.is_dir() or task_dir.name.startswith(".") or task_dir.name in SYSTEM_IGNORE_PATTERNS:
+            continue
+        progress = task_dir / "progress.md"
+        if not progress.is_file():
+            continue
+        try:
+            text = progress.read_text(encoding="utf-8")
+        except OSError:
+            continue
+
+        line_count = len(text.splitlines())
+        preamble, entries, trailing = _parse_progress_entries(text)
+        entry_count = len(entries)
+
+        if line_count <= PROGRESS_SPLIT_MAX_LINES and entry_count <= PROGRESS_SPLIT_MAX_ENTRIES:
+            continue
+        if entry_count <= PROGRESS_KEEP_LIVE_ENTRIES:
+            # Over line budget but not enough discrete entries to archive — skip rather than empty live log
+            if entry_count == 0:
+                continue
+            # Still split what we can: archive nothing if keep would leave zero? Keep at least 1
+            keep = max(1, min(PROGRESS_KEEP_LIVE_ENTRIES, entry_count - 1)) if entry_count > 1 else entry_count
+            if keep >= entry_count:
+                continue
+        else:
+            keep = PROGRESS_KEEP_LIVE_ENTRIES
+
+        to_archive = entries[:-keep] if keep else entries
+        to_keep = entries[-keep:] if keep else []
+        if not to_archive:
+            continue
+
+        first_d = to_archive[0][0].replace("-", "")
+        last_d = to_archive[-1][0].replace("-", "")
+        archive_name = f"progress-archive-{first_d}-{last_d}.md"
+        archive_path = task_dir / archive_name
+
+        # If name collides (re-sync), append a numeric suffix
+        suffix = 2
+        while archive_path.exists():
+            archive_name = f"progress-archive-{first_d}-{last_d}-{suffix}.md"
+            archive_path = task_dir / archive_name
+            suffix += 1
+
+        first_human = to_archive[0][0]
+        last_human = to_archive[-1][0]
+        today = date.today().isoformat()
+        archive_body = (
+            f"# Progress Log Archive\n\n"
+            f"> Archived chunk of `progress.md` — entries {first_human} to {last_human}, "
+            f"moved out on {today} to keep the live file lean. Content is verbatim and frozen.\n\n"
+            + "".join(e[1] for e in to_archive).rstrip()
+            + "\n"
+        )
+        archive_path.write_text(archive_body, encoding="utf-8")
+
+        summary_bullet = (
+            f"- {first_human}–{last_human}: Archived {len(to_archive)} entries "
+            f"(auto-split by sync_bundle.py) → full entries in "
+            f"[{archive_name}]({archive_name})."
+        )
+        new_preamble = _append_archive_summary_bullet(preamble, summary_bullet)
+        # Drop padding / maintenance notes from live file to honor line budget
+        live_body = "".join(e[1] for e in to_keep).rstrip() + "\n"
+        new_text = new_preamble.rstrip() + "\n\n" + live_body
+        # If ## Log not in preamble end, ensure structure
+        if "## Log" not in new_preamble:
+            new_text = (
+                new_preamble.rstrip()
+                + "\n\n## Archive Summary\n\n"
+                + summary_bullet
+                + "\n\n## Log\n\n"
+                + live_body
+            )
+        progress.write_text(new_text, encoding="utf-8")
+        actions.append(f"tasks/{task_dir.name}/{archive_name} ({len(to_archive)} entries archived)")
+
+    return actions
 
 
 def age_days(date_val) -> int | None:
@@ -614,54 +895,69 @@ def run_doctor() -> int:
     scope_errs = validate_scope_leaks(task_slugs)
     task_integrity_errs = validate_tasks_integrity()
     blob_errs = validate_blobs()
+    link_errs = validate_strict_links()
 
     missing_fm_errs = [
         f"文档缺少 Frontmatter 元数据: '{d['path']}'" for d in doc_entries if not d.get("has_frontmatter")
     ]
 
     has_errors = bool(
-        skeleton_errs or task_skeleton_errs or scope_errs or task_integrity_errs or blob_errs or missing_fm_errs
+        skeleton_errs
+        or task_skeleton_errs
+        or scope_errs
+        or task_integrity_errs
+        or blob_errs
+        or link_errs
+        or missing_fm_errs
     )
 
     # 1. 顶层骨架校验
     if skeleton_errs:
-        print("\n❌ [1/5 顶层骨架规范]: FAIL")
+        print("\n❌ [1/6 顶层骨架规范]: FAIL")
         for err in skeleton_errs:
             print(f"   - {err}")
     else:
-        print("\n✔ [1/5 顶层骨架规范]: PASS (顶层目录与文件符合规范白名单)")
+        print("\n✔ [1/6 顶层骨架规范]: PASS (顶层目录与文件符合规范白名单)")
 
     # 2. 任务沙盒内部骨架校验
     if task_skeleton_errs:
-        print("\n❌ [2/5 任务子目录规范]: FAIL")
+        print("\n❌ [2/6 任务子目录规范]: FAIL")
         for err in task_skeleton_errs:
             print(f"   - {err}")
     else:
-        print("\n✔ [2/5 任务子目录规范]: PASS (任务内部目录严格收敛至 inputs/outputs/scripts/plans/docs)")
+        print("\n✔ [2/6 任务子目录规范]: PASS (任务内部目录严格收敛至 inputs/outputs/scripts/plans/docs)")
 
     # 3. 任务隔离域外溢校验
     if scope_errs:
-        print("\n❌ [3/5 隔离域防外溢]: FAIL")
+        print("\n❌ [3/6 隔离域防外溢]: FAIL")
         for err in scope_errs:
             print(f"   - {err}")
     else:
-        print("\n✔ [3/5 隔离域防外溢]: PASS (docs/ 目录下无任务特化资产泄漏)")
+        print("\n✔ [3/6 隔离域防外溢]: PASS (docs/ 目录下无任务特化资产泄漏)")
 
     # 4. 任务生命周期文件规范
     if task_integrity_errs:
-        print("\n❌ [4/5 任务生命周期规范]: FAIL")
+        print("\n❌ [4/6 任务生命周期规范]: FAIL")
         for err in task_integrity_errs:
             print(f"   - {err}")
     else:
-        print(f"\n✔ [4/5 任务生命周期规范]: PASS ({len(task_slugs)} 个任务 README 与 progress 均合法有效)")
+        print(f"\n✔ [4/6 任务生命周期规范]: PASS ({len(task_slugs)} 个任务 README 与 progress 均合法有效)")
 
     # 5. 冷数据与大文件门禁
     if blob_errs:
-        print("\n❌ [5/5 大文件冷数据审计]: FAIL (超限阻断)")
+        print("\n❌ [5/6 大文件冷数据审计]: FAIL (超限阻断)")
         for err in blob_errs:
             print(f"   - {err}")
     else:
-        print("\n✔ [5/5 大文件冷数据审计]: PASS (无 >5MB 的非结构化冷数据违规堆积)")
+        print("\n✔ [5/6 大文件冷数据审计]: PASS (无 >5MB 的非结构化冷数据违规堆积)")
+
+    # 6. 图谱相对链接 / code:// 可达性（fail-closed；忽略 http(s)）
+    if link_errs:
+        print("\n❌ [6/6 图谱断链审计]: FAIL")
+        for err in link_errs:
+            print(f"   - {err}")
+    else:
+        print("\n✔ [6/6 图谱断链审计]: PASS (相对 Markdown 与 code:// 目标均可解析)")
 
     # Frontmatter 补充诊断
     if missing_fm_errs:
@@ -682,6 +978,10 @@ def main() -> None:
     if "--doctor" in sys.argv:
         code = run_doctor()
         sys.exit(code)
+
+    split_actions = maybe_split_progress_logs()
+    for action in split_actions:
+        print(f"[Context Bundle Sync] progress auto-split: {action}", file=sys.stderr)
 
     doc_entries = scan_docs()
     task_entries = scan_tasks()

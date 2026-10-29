@@ -74,7 +74,7 @@ sync_bundle.py Compilation Engine (<15ms)
 | Layer | File Artifact | Role | Core Mechanism |
 |---|---|---|---|
 | **Single Source of Truth (SSOT)** | `.context/**/*.md` | Knowledge & State Definition | Frontmatter metadata, vertically anchoring code lines (`code://...#L10`) |
-| **Fast Compilation Engine** | `.context/scripts/sync_bundle.py` | State Synchronization & Indexing | <15ms full scan, structural whitelist gates & frontmatter extraction; strict link/schema validation is a follow-up, zero dependencies |
+| **Fast Compilation Engine** | `.context/scripts/sync_bundle.py` | State Synchronization & Indexing | <15ms full scan, structural whitelist gates, frontmatter extraction, and relative/`code://` link audit (doctor gate 6); zero dependencies |
 | **Machine Fast Index (AI)** | `.context/manifest.jsonl` | Instant Agent Triage | One JSON line per concept, stream-filterable via Unix pipes, saves 99% tokens |
 | **Human View Layer (Humans)** | `INDEX.md` / `STATUS.md` / `CLEANUP.md` | Developer Overview Boards | 100% auto-derived, real-time views of catalogs, task age, and review queue |
 
@@ -110,7 +110,7 @@ sync_bundle.py Compilation Engine (<15ms)
 │   ├── STATUS.md                     # [Generated Board] Task status, age, & stagnancy alerts
 │   └── <task-slug>/
 │       ├── README.md                 # Task controller (Frontmatter with status & code anchors)
-│       ├── progress.md               # Append-only chronological execution log (Agent SOP split when long; engine does not auto-split)
+│       ├── progress.md               # Append-only log (sync auto-splits to progress-archive-* at ~200 lines / ~25 entries)
 │       └── (as-needed) inputs/ outputs/ scripts/ plans/ docs/ # 2 core files + 5 orthogonal subdirs (aliases strictly forbidden)
 ├── research/                         # Multi-session evaluations, benchmarks & spike investigations
 └── scripts/
@@ -132,7 +132,7 @@ The bundle implements a lifecycle state machine that solves both **context loss*
                               │
                               ▼ (Strict Admission: User command OR Agent proposal with human approval)
 [2. Multi-Session Task] .context/tasks/<task-slug>/
-                        Controller + log separation • Liveness alerts (>14d ⚠️) • Agent SOP progress split (not engine)
+                        Controller + log separation • Liveness alerts (>14d ⚠️) • Engine auto-split progress.md
                               │
                               ▼ (Task Concluded: Extract baseline architecture & playbooks)
 [3. Core Specification] .context/docs/architecture-*.md / playbook-*.md
@@ -159,7 +159,7 @@ The bundle implements a lifecycle state machine that solves both **context loss*
 - **Controller & Log Separation**:
   - `README.md`: Controller holding frontmatter, goals, code anchors, and key decisions.
   - `progress.md`: Append-only execution log. Editing this file automatically redirects the date bump to `README.md`.
-- **Log Chunking (Agent SOP / roadmap)**: When `progress.md` exceeds ~20–30 entries (or ~150–200 lines), the **agent** splits history into `progress-archive-YYYYMMDD-YYYYMMDD.md` with an inline executive summary per `task-progress-template`. `sync_bundle.py` does **not** implement automatic splitting.
+- **Automatic Log Chunking**: When `progress.md` exceeds ~**200 lines** or ~**25** dated entries (`- YYYY-MM-DD:`), `sync_bundle.py` on the normal sync path writes `progress-archive-YYYYMMDD-YYYYMMDD.md`, appends an `## Archive Summary` bullet with a link, and keeps the newest ~**10** entries live. Short logs are left untouched.
 
 ### 3. Stage 3: Long-term Core Knowledge (`docs/`)
 - **Baseline Promotion**: When a task concludes, architectural insights and reusable runbooks are promoted to `docs/architecture-<slug>.md` or `docs/playbook-<slug>.md`.
@@ -245,7 +245,7 @@ Once initialized, you don't need to memorize complex commands. Natural language 
 #### Scenario E: Knowledge Base Health Audit & Doctor (Report-only)
 - **One-Click Comprehensive Diagnostics (report-oriented; no in-place auto-repair)**:
   > 🗣️ *"Audit and diagnose the .context knowledge bundle."*  
-  > 🤖 **Agent**: Runs `python3 .context/scripts/sync_bundle.py --doctor` to perform **5-gate** mechanical checks (① top-level skeleton whitelist, ② task subdirectory whitelist, ③ sandbox isolation / scope leaks, ④ task lifecycle integrity, ⑤ oversized blob guards), prints a health board, and exits `1` on FAIL. Doctor does **not** rewrite files; the agent remediates from the report, then re-runs doctor.
+  > 🤖 **Agent**: Runs `python3 .context/scripts/sync_bundle.py --doctor` to perform **6-gate** mechanical checks (① top-level skeleton whitelist, ② task subdirectory whitelist, ③ sandbox isolation / scope leaks, ④ task lifecycle integrity, ⑤ oversized blob guards, ⑥ relative Markdown / `code://` link reachability), prints a health board, and exits `1` on FAIL. Link audit is fail-closed (http(s) ignored). Doctor does **not** rewrite files; the agent remediates from the report, then re-runs doctor.
 
 ---
 
@@ -257,7 +257,7 @@ Zero manual updates. Hooks guarantee that any file modification automatically re
 Edit .context/file.md ──► PostToolUse Hook ──► bump_updated.py ──► sync_bundle.py ──► manifest & boards updated
 ```
 
-> 💡 **One-Click Automated Detection & Injection**: Run `python3 .context/scripts/install_hooks.py` during init/maintenance to automatically detect host frameworks (Antigravity, Claude Code, Git) and inject native lifecycle hooks. Manual configurations are also documented below:
+> 💡 **One-Click Automated Detection & Injection**: Run `python3 .context/scripts/install_hooks.py` during init/maintenance to detect host frameworks and inject hooks. Antigravity is detected only via a project-local `.agents/` directory or `ANTIGRAVITY` / `GEMINI_CLI` env — a bare root `AGENTS.md` alone is **not** treated as Antigravity (avoids false positives on Cursor projects). Manual configurations are also documented below:
 
 ### 1. Claude Code (`.claude/settings.local.json`)
 ```json
