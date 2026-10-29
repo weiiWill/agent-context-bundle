@@ -18,3 +18,10 @@ Thumbs.db
 *~
 .idea/
 .vscode/
+
+# Test / tooling
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
